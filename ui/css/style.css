@@ -21,3 +21,17 @@
     right: 0;
     z-index: 1000;
 }
+
+h1 {
+    font-size: 2vw;
+    font-family: Trebuchet, sans-serif;
+    letter-spacing: 0.1vw;
+    color:#665f5f;
+    margin: 0; 
+    padding-left: 10px;
+    padding-top: 5px;
+    position: relative; 
+    z-index: 1; 
+    white-space: nowrap;
+    overflow: hidden;
+  }
