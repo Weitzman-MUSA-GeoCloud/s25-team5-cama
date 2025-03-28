@@ -15,7 +15,8 @@ def extract_pwd_parcels(request):
     print('Extracting PWD Parcels data')
 
     # Download the PWD parcels data as a geojson
-    url = 'https://opendata.arcgis.com/datasets/84baed491de44f539889f2af178ad85c_0.geojson'
+    url = 'https://www.pasda.psu.edu/json/PhillyWater_PWD_PARCELS2025.geojson'
+    # 'https://opendata.arcgis.com/datasets/84baed491de44f539889f2af178ad85c_0.geojson'
     filename = DATA_DIR / 'pwd_parcels.geojson'
 
     response = requests.get(url)
