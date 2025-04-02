@@ -190,12 +190,13 @@ gcloud functions call load_pwd_parcels --region=us-east4 --project=musa5090s25-t
 ```shell
 gcloud workflows deploy data-pipeline \
 --source=data-pipeline.yaml \
---service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'\
+--location=us=east4
 
 gcloud scheduler jobs create http data-pipeline \
 --schedule='0 0 * * 1' \
 --time-zone='America/New_York' \
+--location=us-east4 \
 --uri='https://workflowexecutions.googleapis.com/v1/projects/musa5090s25-team5/locations/us-east4/workflows/data-pipeline/executions' \
---oauth-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
---oidc-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--oidc-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'
 ```
