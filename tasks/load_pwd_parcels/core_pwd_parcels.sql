@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS core.pwd_parcels;
+DROP TABLE IF EXISTS core.{table_name};
 
-CREATE TABLE core.pwd_parcels AS
+CREATE TABLE core.{table_name} AS
 SELECT brt_id AS property_id, *
-FROM source.pwd_parcels;
+FROM ${dataset_name}.{table_name};

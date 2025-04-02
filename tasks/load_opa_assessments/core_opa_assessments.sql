@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS core.opa_assessments;
+DROP TABLE IF EXISTS core.{table_name};
 
-CREATE TABLE core.opa_assessments AS
+CREATE TABLE core.{table_name} AS
 SELECT parcel_number AS property_id, *
-FROM source.opa_assessments;
+FROM ${dataset_name}.{table_name};
