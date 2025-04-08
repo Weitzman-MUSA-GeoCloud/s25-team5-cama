@@ -10,27 +10,40 @@
 </head>
 
 <body>
-    <header class="banner">
-        <h1> </i><span class="title">Team Five</span>&nbsp<i class="fas fa-hand-paper"></i></h1>
-    </header>
-
-    <div class="statistic">
-        <div id="vertical-box">
-            <p class="value"><span class="valueText">500,000</span></p>
-            <p class="measure">properties increased in assessed value</p>
-        </div>
-        <div id="vertical-box">
-            <p class="value"><span class="valueText">2,000</span></p>
-            <p class="measure">properties decreased in assessed value</p>
-        </div>
-        <div id="vertical-box">
-            <p class="value"><span class="valueText">13.7%</span></p>
-            <p class="measure">change on each property value on average</p>
-        </div>
-    </div>
-
     <main>
+        <div class="header-container">
+            <h1> </i><i class="fas fa-home"></i>&nbsp<span class="title">Property Philly</span></h1>
+        </div>
+    
+        <div id="statistic">
+            <div id="vertical-box1">
+                <p class="value"><span class="valueText">500,000</span>&nbsp<i class="fas fa-arrow-up"></i></p>
+                <p class="measure">properties increased in assessed value</p>
+            </div>
+    
+            <div id="vertical-box2">
+                <p class="value"><span class="valueText">2,000</span>&nbsp<i class="fas fa-arrow-down"></i></p>
+                <p class="measure">properties decreased in assessed value</p>
+            </div>
+    
+            <div id="vertical-box3">
+                <p class="value"><span class="valueText">13.7</span>&nbsp<i class="fas fa-percent"></i></p>
+                <p class="measure">average change on property value</p>
+            </div>
+    
+        </div>
+
         <div id="map"></div>
+
+        <div id="graphs">
+            <div class="graph-box" id="graph1"> 
+                <h2> Graph 1 </h2> Philadelphia graph
+            </div>
+
+            <div class="graph-box" id="graph2"> 
+                <h2> Graph 2 </h2> Neighborhood graph
+            </div>
+        </div>
     </main>
 
     <script src="js/main.js" type="module"></script>
