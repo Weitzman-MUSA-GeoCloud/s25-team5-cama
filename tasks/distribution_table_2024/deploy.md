@@ -1,0 +1,12 @@
+gcloud functions deploy generate_assessment_chart_configs \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_assessment_chart_configs \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_CONFIG=musa5090s25-team5-config \
+--memory=4Gi \
+--timeout=240s \
+--no-allow-unauthenticated \
+--trigger-http
