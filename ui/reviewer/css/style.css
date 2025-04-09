@@ -20,21 +20,10 @@ main {
     grid-row: 1;
     grid-column: 1 / -1;
     padding: 10px;
-}
-
-/* .banner {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    background-color: white;
-    color: black;
-    padding: 10px 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-} */
+    justify-content: space-between;
+}
 
 h1 {
     font-size: 2rem;
@@ -50,6 +39,24 @@ h1 {
     overflow: hidden;
   }
 
+  /* Navigation buttons */
+.nav-buttons button {
+    margin: 0 1px;
+    padding: 10px 15px;
+    background-color: #cddfec;
+    color: #292929;
+    border: none;
+    cursor: pointer;
+    font-family: Trebuchet, sans-serif;
+    font-size: 16px;
+    transition: background-color 0.2s ease;
+    border-radius: 20px;
+}
+
+.nav-buttons button:hover {
+    background-color: #545454;
+    color: white; /* Change text color */
+}
 
 #statistic {
     grid-row: 2;

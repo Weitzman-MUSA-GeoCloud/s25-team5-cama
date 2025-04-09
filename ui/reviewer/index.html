@@ -6,8 +6,6 @@
     <link rel="icon" type="image/x-icon" href="hand.ico">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script> -->
-    <!-- <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" /> -->
     <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet"/>
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
 </head>
@@ -16,6 +14,13 @@
     <main>
         <div class="header-container">
             <h1> </i><i class="fas fa-home"></i>&nbsp<span class="title">Property Philly</span></h1>
+
+            <nav class="nav-buttons">
+                <button id="workshop-btn">Current Assessment Value</button>
+                <button id="transitscore-btn">2024 Assessment Value</button>
+                <button id="demo-btn">% Change in Assessment Value</button>
+                <button id="resources-btn">Absolute Change in Assessment Value</button>
+            </nav>
         </div>
     
         <div id="statistic">
