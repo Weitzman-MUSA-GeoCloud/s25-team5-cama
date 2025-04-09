@@ -36,12 +36,26 @@
     
             <div id="vertical-box3">
                 <p class="value"><span class="valueText">13.7</span>&nbsp<i class="fas fa-percent"></i></p>
-                <p class="measure">average change on property value</p>
+                <p class="measure">average change in property value</p>
             </div>
     
         </div>
 
-        <div id="map"></div>
+        <div class="map-container">
+            <div id="search-bar">
+                <input type="text" placeholder="Search for address">
+            </div>
+            <button id="filter-button">
+                <i class="fas fa-filter"></i>
+            </button>
+            <div id="filter-dropdown" class="dropdown-content">
+                <label><input type="checkbox" id="filter-option-1">Exterior Condition</label>
+                <label><input type="checkbox" id="filter-option-2">New</label>
+                <label><input type="checkbox" id="filter-option-3">Above Average</label>
+                <label><input type="checkbox" id="filter-option-4">Average</label>
+            </div>
+            <div id="map"></div>
+        </div>
 
         <div id="graphs">
             <div class="graph-box" id="graph1"> 

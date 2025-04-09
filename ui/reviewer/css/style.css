@@ -58,6 +58,21 @@ h1 {
     color: white; /* Change text color */
 }
 
+.search-bar {
+    width: 30%;
+    padding: 5px;
+    border-radius: 20px;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    position: absolute; /* Position it relative to its first positioned (non-static) ancestor */
+    top: 10px; /* Adjust this value to move the search bar closer to the top */
+    left: 50%; /* Center the search bar horizontally */
+    transform: translateX(-50%); /* Adjust the search bar to truly center it */
+    font-size: 14px;
+    z-index: 1000; /* Ensure it stays on top of the map */
+}
+
 #statistic {
     grid-row: 2;
     grid-column: 1 / -1;  
@@ -129,6 +144,72 @@ h1 {
     flex-wrap: wrap;
     border-radius: 12px;
     overflow: hidden;
+}
+
+.map-container {
+    position: relative; /* This makes the search bar position relative to the map container */
+    width: 100%; /* Adjust this to the width of your map */
+    height: 100%; /* Adjust this to your map height */
+}
+
+/* Search bar */
+#search-bar {
+    width: 30%; /* This will resize relative to the map container */
+    padding: 10px;
+    border-radius: 75px;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    position: absolute; /* Position it relative to the map container */
+    top: 10px; /* Adjust the distance from the top of the map */
+    left: 5%; /* Center it horizontally */
+    font-size: 14px;
+    z-index: 1000; /* Ensure it stays on top of the map */
+    transition: width 0.3s ease; /* Smooth transition for resizing */
+}
+
+/* Filter button */
+#filter-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background-color: white;
+    color: #7c7f81;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+#filter-button:hover {
+    background-color: #292929;
+    color: white;
+}
+
+/* Dropdown container styles */
+#filter-dropdown {
+    position: absolute;
+    top: 50px; /* Adjust to align with your button */
+    right: 10px;
+    background-color: white;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    display: none; /* Initially hidden */
+    padding: 10px;
+    z-index: 1000;
+    width: 200px;
+}
+
+/* Make dropdown items look like clickable options */
+#filter-dropdown label {
+    display: block;
+    padding: 5px;
+    cursor: pointer;
+}
+
+#filter-dropdown label:hover {
+    background-color: #f1f1f1;
 }
 
 #graphs {
