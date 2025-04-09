@@ -9,7 +9,7 @@ load_dotenv()
 
 
 @functions_framework.http
-def generate_assessment_chart_configs(request):
+def generate_philadelphia_assessment_chart_configs(request):
     # Step 1: Query the BigQuery table
     query = """
         SELECT
