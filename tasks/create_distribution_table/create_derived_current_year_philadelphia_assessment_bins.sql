@@ -1,5 +1,5 @@
 -- Group properties using meaningful value ranges that reflect Philadelphia’s market structure, policy relevance, and housing types.
-CREATE OR REPLACE TABLE derived.tax_year_assessment_bins AS
+CREATE OR REPLACE TABLE derived.current_year_philadelphia_assessment_bins AS
 WITH labeled AS (
   SELECT
     year AS tax_year,
