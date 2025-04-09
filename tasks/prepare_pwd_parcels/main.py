@@ -34,7 +34,7 @@ def prepare_pwd_parcels(request):
     # Write the data to a JSONL file
     with open(prepared_filename, 'w') as f:
         for feature in data['features']:
-            row = feature['properties']
+            row = {k.lower(): v for k, v in feature['properties'].items()}  # convert keys to lowercase
             row['geog'] = (
                 json.dumps(feature['geometry'])
                 if feature['geometry'] and feature['geometry']['coordinates']
