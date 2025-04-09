@@ -1,8 +1,8 @@
 // Using Maplibre GL
-var map = new maplibregl.Map({
-  container: 'map', // container id
-  style: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json', // Stadia
-  center: [-75.1652, 39.9526],  // [lng, lat]
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://api.maptiler.com/maps/dataviz/style.json?key=xdCfCPvJINrcgKlAsJf4',
+  center: [-75.1652, 39.9526],
   zoom: 12
 });
 
