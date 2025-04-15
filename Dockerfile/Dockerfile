@@ -23,4 +23,5 @@ COPY script.sh .
 RUN chmod +x ./script.sh
 
 # Run the script when starting the container
-CMD [ "./script.sh" ]
+CMD [ "/bin/bash", "-c", "./script.sh" ]
+
