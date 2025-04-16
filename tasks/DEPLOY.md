@@ -186,6 +186,25 @@ gcloud functions deploy load_pwd_parcels \
 gcloud functions call load_pwd_parcels --region=us-east4 --project=musa5090s25-team5
 ```
 
+*create_table_for_json*
+```shell
+cd ../create_table_for_json
+
+gcloud functions deploy create_table_for_json \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=create_table_for_json \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--memory=4Gi \
+--timeout=240s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call create_table_for_json --region=us-east4 --project=musa5090s25-team5
+```
+
 *the whole workflow:*
 ```shell
 gcloud workflows deploy data-pipeline \

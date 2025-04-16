@@ -7,10 +7,11 @@ DATA_DIR = pathlib.Path(__file__).parent
 
 
 @functions_framework.http
-def create_distribution_table(request):
+def create_table_for_json(request):
     sql_files = [
         "create_derived_current_year_neighborhood_assessment_bins.sql",
         "create_derived_current_year_philadelphia_assessment_bins.sql",
+        "create_derived_historic_year_property_assessment.sql",
         "create_derived_tax_year_neighborhood_assessment_bins.sql",
         "create_derived_tax_year_philadelphia_assessment_bins.sql"
     ]
