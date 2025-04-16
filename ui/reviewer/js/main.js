@@ -1,3 +1,5 @@
+import { initAddressSearch } from './address_search.js';
+
 // Using Maplibre GL
 const map = new maplibregl.Map({
   container: 'map',
@@ -34,4 +36,32 @@ map.on('load', () => {
       'fill-opacity': 0.4
       }
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('search-bar');
+  const mapboxKey = 'pk.eyJ1Ijoic3lsdmlhdXBlbm4iLCJhIjoiY20weTdodGpiMGt4MDJsb2UzbzZnd2FmMyJ9.H6mn-LOHFUdv7swHpM7enA';
+
+  // Initialize a custom event target
+  const events = new EventTarget();
+
+  // Add event listeners for the custom events
+  events.addEventListener('autocompleteselected', (event) => {
+    const feature = event.detail;
+    console.log('Address selected:', feature.properties.address);
+    // You can do something with the selected address
+  });
+
+  events.addEventListener('manualadjust', (event) => {
+    const coordinates = event.detail;
+    console.log('Manual adjustment coordinates:', coordinates);
+    // Do something with the coordinates
+  });
+
+  // Only initialize the address search if the element exists
+  if (searchInput) {
+    initAddressSearch(searchInput, events, mapboxKey);
+  } else {
+    console.error("The address search input element was not found.");
+  }
 });

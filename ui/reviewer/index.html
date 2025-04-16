@@ -18,8 +18,6 @@
             <nav class="nav-buttons">
                 <button id="workshop-btn">Current Assessment Value</button>
                 <button id="transitscore-btn">2024 Assessment Value</button>
-                <button id="demo-btn">% Change in Assessment Value</button>
-                <button id="resources-btn">Absolute Change in Assessment Value</button>
             </nav>
         </div>
     
@@ -43,7 +41,8 @@
 
         <div class="map-container">
             <div id="search-bar">
-                <input type="text" placeholder="Search for address">
+                <input type="text" name="address-search" placeholder="Search for address" aria-label="Search around an address or place">
+                <ol class="autocomplete-options hidden"></ol>
             </div>
             <button id="filter-button">
                 <i class="fas fa-filter"></i>

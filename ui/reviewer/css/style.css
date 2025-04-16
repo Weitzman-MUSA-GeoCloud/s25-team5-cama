@@ -58,21 +58,6 @@ h1 {
     color: white; /* Change text color */
 }
 
-.search-bar {
-    width: 30%;
-    padding: 5px;
-    border-radius: 20px;
-    display: flex;
-    align-items: stretch;
-    flex-direction: column;
-    position: absolute; /* Position it relative to its first positioned (non-static) ancestor */
-    top: 10px; /* Adjust this value to move the search bar closer to the top */
-    left: 50%; /* Center the search bar horizontally */
-    transform: translateX(-50%); /* Adjust the search bar to truly center it */
-    font-size: 14px;
-    z-index: 1000; /* Ensure it stays on top of the map */
-}
-
 #statistic {
     grid-row: 2;
     grid-column: 1 / -1;  
@@ -152,7 +137,6 @@ h1 {
     height: 100%; /* Adjust this to your map height */
 }
 
-/* Search bar */
 #search-bar {
     width: 30%; /* This will resize relative to the map container */
     padding: 10px;
@@ -233,3 +217,27 @@ h1 {
     border-radius: 6px;
     flex: 1;
 }
+
+.autocomplete-options {
+    position: absolute;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    margin-top: 5px;
+    padding: 0;
+    list-style-type: none;
+    width: 100%;
+    z-index: 999;
+  }
+  
+
+  
+.autocomplete-options:hover {
+    background-color: #f0f0f0;
+}
+
+.hidden {
+    display: none;
+  }
