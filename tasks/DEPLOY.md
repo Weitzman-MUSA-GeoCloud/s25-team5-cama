@@ -200,3 +200,8 @@ gcloud scheduler jobs create http data-pipeline \
 --uri='https://workflowexecutions.googleapis.com/v1/projects/musa5090s25-team5/locations/us-east4/workflows/data-pipeline/executions' \
 --oauth-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'
 ```
+
+*CORS*
+```shell
+gsutil cors set cors-json-file.json gs://musa5090s25-team5-public
+```
