@@ -60,6 +60,26 @@ gcloud functions deploy extract_pwd_parcels \
 gcloud functions call extract_pwd_parcels --region=us-east4 --project=musa5090s25-team5
 ```
 
+*extract_neighborhoods:*
+```shell
+cd ../extract_neighborhoods
+
+gcloud functions deploy extract_neighborhoods \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=extract_neighborhoods \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--memory=4Gi \
+--timeout=240s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call extract_neighborhoods --region=us-east4 --project=musa5090s25-team5
+```
+
 *prepare_opa_properties:*
 ```shell
 cd ../prepare_opa_properties
@@ -123,9 +143,30 @@ gcloud functions deploy prepare_pwd_parcels \
 gcloud functions call prepare_pwd_parcels --region=us-east4 --project=musa5090s25-team5
 ```
 
+*prepare_neighborhoods:*
+```shell
+cd ../prepare_neighborhoods
+
+gcloud functions deploy prepare_neighborhoods \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=prepare_neighborhoods \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--set-env-vars=DATA_LAKE_BUCKET_PREPARE=musa5090s25-team5-prepared_data \
+--memory=4Gi \
+--timeout=240s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call prepare_neighborhoods --region=us-east4 --project=musa5090s25-team5
+```
+
 *load_opa_properties:*
 ```shell
-cd ../load_opa_properties
+cd ../load
 
 gcloud functions deploy load_opa_properties \
 --gen2 \
@@ -146,7 +187,7 @@ gcloud functions call load_opa_properties --region=us-east4 --project=musa5090s2
 
 *load_opa_assessments:*
 ```shell
-cd ../load_opa_assessments
+cd ../load
 
 gcloud functions deploy load_opa_assessments \
 --gen2 \
@@ -167,7 +208,7 @@ gcloud functions call load_opa_assessments --region=us-east4 --project=musa5090s
 
 *load_pwd_parcels:*
 ```shell
-cd ../load_pwd_parcels
+cd ../load
 
 gcloud functions deploy load_pwd_parcels \
 --gen2 \
@@ -186,14 +227,38 @@ gcloud functions deploy load_pwd_parcels \
 gcloud functions call load_pwd_parcels --region=us-east4 --project=musa5090s25-team5
 ```
 
+*load_neighborhoods:*
+```shell
+cd ../load
+
+gcloud functions deploy load_neighborhoods \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=load_neighborhoods \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PREPARE=musa5090s25-team5-prepared_data \
+--set-env-vars=DATA_LAKE_DATASET=source \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call load_neighborhoods --region=us-east4 --project=musa5090s25-team5
+```
+
 *the whole workflow:*
+
+Note: use gcloud scheduler jobs create if deploying scheduler for the first time
+
 ```shell
 gcloud workflows deploy data-pipeline \
 --source=data-pipeline.yaml \
---service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'\
---location=us=east4
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--location=us-east4
 
-gcloud scheduler jobs create http data-pipeline \
+gcloud scheduler jobs update http data-pipeline \
 --schedule='0 0 * * 1' \
 --time-zone='America/New_York' \
 --location=us-east4 \
