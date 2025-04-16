@@ -9,9 +9,25 @@ DATA_DIR = pathlib.Path(__file__).parent
 
 
 @functions_framework.http
-def load_opa_properties(request):
+def load_opa_assessments(request):
+    return load_data('opa_assessments', request)
 
-    sql_files = ["source_opa_properties.sql", "core_opa_properties.sql"]
+
+@functions_framework.http
+def load_opa_properties(request):
+    return load_data('opa_properties', request)
+
+
+@functions_framework.http
+def load_pwd_parcels(request):
+    return load_data('pwd_parcels', request)
+
+@functions_framework.http
+def load_neighborhoods(request):
+    return load_data('neighborhoods', request)
+
+def load_data(table_name, request):
+    sql_files = [f"source_{table_name}.sql", f"core_{table_name}.sql"]
     bigquery_client = bigquery.Client()
 
     for sql_filename in sql_files:
@@ -33,8 +49,8 @@ def load_opa_properties(request):
                 {
                     'bucket_name': os.getenv('DATA_LAKE_BUCKET_PREPARE'),
                     'dataset_name': os.getenv('DATA_LAKE_DATASET'),
-                    'prepared_blobname': 'opa_properties/data.jsonl',
-                    'table_name': 'opa_properties'
+                    'prepared_blobname': f'{table_name}/data.jsonl',
+                    'table_name': table_name
                 }
             )
 

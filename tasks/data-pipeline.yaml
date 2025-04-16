@@ -65,3 +65,24 @@ main:
                             url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/load_pwd_parcels'
                             auth:
                                 type: OIDC
+                
+                - neighborhoodsPipeline:
+                    steps:
+                    - extractNeighborhoods:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/extract_neighborhoods'
+                            auth:
+                                type: OIDC
+                    - prepareNeighborhoods:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/prepare_neighborhoods'
+                            auth:
+                                type: OIDC
+                    - loadNeighborhoods:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/load_neighborhoods'
+                            auth:
+                                type: OIDC
