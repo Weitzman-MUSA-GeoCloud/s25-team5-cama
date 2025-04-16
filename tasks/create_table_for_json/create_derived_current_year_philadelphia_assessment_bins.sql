@@ -2,33 +2,33 @@
 CREATE OR REPLACE TABLE derived.current_year_philadelphia_assessment_bins AS
 WITH labeled AS (
   SELECT
-    2025 AS tax_year,
+    tax_year,
     CASE
-      WHEN market_value > 0 AND market_value <= 100000 THEN 0
-      WHEN market_value <= 200000 THEN 100000
-      WHEN market_value <= 300000 THEN 200000
-      WHEN market_value <= 400000 THEN 300000
-      WHEN market_value <= 600000 THEN 400000
-      WHEN market_value <= 800000 THEN 600000
-      WHEN market_value <= 1000000 THEN 800000
-      WHEN market_value <= 2000000 THEN 1000000
-      WHEN market_value <= 5000000 THEN 2000000
+      WHEN sale_price_2025 > 0 AND sale_price_2025 <= 100000 THEN 0
+      WHEN sale_price_2025 <= 200000 THEN 100000
+      WHEN sale_price_2025 <= 300000 THEN 200000
+      WHEN sale_price_2025 <= 400000 THEN 300000
+      WHEN sale_price_2025 <= 600000 THEN 400000
+      WHEN sale_price_2025 <= 800000 THEN 600000
+      WHEN sale_price_2025 <= 1000000 THEN 800000
+      WHEN sale_price_2025 <= 2000000 THEN 1000000
+      WHEN sale_price_2025 <= 5000000 THEN 2000000
       ELSE 5000000
     END AS lower_bound,
     CASE
-      WHEN market_value > 0 AND market_value <= 100000 THEN 100000
-      WHEN market_value <= 200000 THEN 200000
-      WHEN market_value <= 300000 THEN 300000
-      WHEN market_value <= 400000 THEN 400000
-      WHEN market_value <= 600000 THEN 600000
-      WHEN market_value <= 800000 THEN 800000
-      WHEN market_value <= 1000000 THEN 1000000
-      WHEN market_value <= 2000000 THEN 2000000
-      WHEN market_value <= 5000000 THEN 5000000
+      WHEN sale_price_2025 > 0 AND sale_price_2025 <= 100000 THEN 100000
+      WHEN sale_price_2025 <= 200000 THEN 200000
+      WHEN sale_price_2025 <= 300000 THEN 300000
+      WHEN sale_price_2025 <= 400000 THEN 400000
+      WHEN sale_price_2025 <= 600000 THEN 600000
+      WHEN sale_price_2025 <= 800000 THEN 800000
+      WHEN sale_price_2025 <= 1000000 THEN 1000000
+      WHEN sale_price_2025 <= 2000000 THEN 2000000
+      WHEN sale_price_2025 <= 5000000 THEN 5000000
       ELSE 500000000
     END AS upper_bound
-  FROM core.opa_assessments
-  WHERE market_value > 0
+  FROM derived.current_year_assessment_value
+  WHERE sale_price_2025 > 0 AND tax_year = 2025
 ),
 aggregated AS (
   SELECT
@@ -42,6 +42,3 @@ aggregated AS (
 SELECT *
 FROM aggregated
 ORDER BY lower_bound;
-
--- 1. Confirm the table name of current year property assessments.
--- 2. Confirm the field name of property assessment value.

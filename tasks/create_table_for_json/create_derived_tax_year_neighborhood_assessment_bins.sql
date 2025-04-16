@@ -4,10 +4,10 @@ WITH assessments_with_geom AS (
   SELECT
     a.year AS tax_year,
     a.market_value,
-    -- 解析 WKT 格式并修正经纬度顺序（原格式为 POINT(lat lon)）
+    -- Convert the property geog from WKT to GEOGRAPHY with correct coordinates
     ST_GEOGPOINT(
-      SAFE_CAST(SPLIT(REPLACE(REPLACE(p.geog, 'POINT(', ''), ')', ''), ' ')[OFFSET(1)] AS FLOAT64),  -- 经度
-      SAFE_CAST(SPLIT(REPLACE(REPLACE(p.geog, 'POINT(', ''), ')', ''), ' ')[OFFSET(0)] AS FLOAT64)   -- 纬度
+      SAFE_CAST(SPLIT(REPLACE(REPLACE(p.geog, 'POINT(', ''), ')', ''), ' ')[OFFSET(1)] AS FLOAT64),
+      SAFE_CAST(SPLIT(REPLACE(REPLACE(p.geog, 'POINT(', ''), ')', ''), ' ')[OFFSET(0)] AS FLOAT64)
     ) AS property_geog
   FROM core.opa_assessments a
   JOIN core.opa_properties p
@@ -56,10 +56,10 @@ labeled AS (
 aggregated AS (
   SELECT
     tax_year,
-    neighborhood,
     lower_bound,
     upper_bound,
-    COUNT(*) AS property_count
+    COUNT(*) AS property_count,
+    neighborhood
   FROM labeled
   GROUP BY tax_year, neighborhood, lower_bound, upper_bound
 )
