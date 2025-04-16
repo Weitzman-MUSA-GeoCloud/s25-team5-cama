@@ -20,7 +20,12 @@ with_neighborhood AS (
     n.name AS neighborhood,
     a.sale_price_2025
   FROM assessments_with_geom a
-  JOIN core.philly_neighborhoods n
+  JOIN (
+    SELECT
+      name,
+      ST_GEOGFROMGEOJSON(geog) AS geometry
+    FROM core.neighborhoods
+  ) n
     ON ST_WITHIN(a.property_geog, n.geometry)
 ),
 labeled AS (

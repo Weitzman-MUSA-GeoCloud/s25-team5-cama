@@ -1,4 +1,4 @@
--- Create a historical assessment table for properties with neighborhood, address, and geography
+-- Create a historical assessment table for properties with neighborhood, address, and geography.
 CREATE OR REPLACE TABLE derived.historic_year_property_assessment AS
 WITH base_historic AS (
   SELECT
@@ -24,7 +24,12 @@ with_neighborhood AS (
     b.property_geog,
     n.name AS neighborhood
   FROM base_historic b
-  JOIN core.philly_neighborhoods n
+  JOIN (
+    SELECT
+      name,
+      ST_GEOGFROMGEOJSON(geog) AS geometry
+    FROM core.neighborhoods
+  ) n
     ON ST_WITHIN(b.property_geog, n.geometry)
 ),
 deduplicated AS (
