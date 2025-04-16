@@ -198,5 +198,5 @@ gcloud scheduler jobs create http data-pipeline \
 --time-zone='America/New_York' \
 --location=us-east4 \
 --uri='https://workflowexecutions.googleapis.com/v1/projects/musa5090s25-team5/locations/us-east4/workflows/data-pipeline/executions' \
---oidc-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'
+--oauth-service-account-email='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com'
 ```
