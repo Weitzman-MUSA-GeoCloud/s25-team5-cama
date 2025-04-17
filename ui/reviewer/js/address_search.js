@@ -1,55 +1,57 @@
-import { htmlToElement } from './dom_utils.js';
-import _debounce from 'https://esm.run/lodash/debounce';
+let cachedAddresses = [];
 
-function initAddressSearch(el, events, mapboxKey) {
-  const autocompleteOptionsList = document.createElement('ol');
-  autocompleteOptionsList.classList.add('autocomplete-options');
-  el.after(autocompleteOptionsList);
+async function fetchDataset() {
+  if (cachedAddresses.length > 0) return cachedAddresses;
 
-  async function showAutocompleteOptions() {
-    const query = el.value;
-    const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${query}&access_token=${mapboxKey}&bbox=-75.31606,39.86528,-74.87932,40.12799&types=place,neighborhood,address,street`;
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      const places = data.features;
+  const url = 'https://storage.googleapis.com/YOUR_BUCKET_NAME/your_dataset.json'; // or API endpoint
+  const response = await fetch(url);
+  const data = await response.json();
 
-      autocompleteOptionsList.classList.remove('hidden');
-      autocompleteOptionsList.innerHTML = '';
-
-      for (const place of places) {
-        const option = htmlToElement(`
-          <li class="autocomplete-option">
-            ${place.properties.full_address}
-          </li>
-        `);
-        option.addEventListener('click', () => {
-          // Create a custom feature, so that we're not tied to the mapbox format.
-          const feature = {
-            type: 'Feature',
-            geometry: place.geometry,
-            properties: {
-              name: place.properties.name_preferred,
-              address: place.properties.full_address,
-            },
-          };
-          const autocompleteEvt = new CustomEvent('autocompleteselected', { detail: feature });
-          events.dispatchEvent(autocompleteEvt);
-
-          const manualAdjustEvt = new CustomEvent('manualadjust', { detail: place.geometry.coordinates });
-          events.dispatchEvent(manualAdjustEvt);
-
-          el.value = place.properties.full_address;
-          autocompleteOptionsList.classList.add('hidden');
-        });
-        autocompleteOptionsList.appendChild(option);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  el.addEventListener('input', _debounce(showAutocompleteOptions, 500));
+  cachedAddresses = data; // Cache it
+  return cachedAddresses;
 }
 
-export { initAddressSearch };
+async function showAutocompleteOptions() {
+  const query = el.value.toLowerCase();
+  const dataset = await fetchDataset();
+
+  const matches = dataset.filter(item => 
+    item.address.toLowerCase().includes(query)
+  ).slice(0, 5); // Limit results to 5
+
+  autocompleteOptionsList.classList.remove('hidden');
+  autocompleteOptionsList.innerHTML = '';
+
+  for (const place of matches) {
+    const option = htmlToElement(`
+      <li class="autocomplete-option">
+        ${place.address}
+      </li>
+    `);
+    option.addEventListener('click', () => {
+      const feature = {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [place.longitude, place.latitude],
+        },
+        properties: {
+          address: place.address,
+          assessed_value: place.assessed_value,
+        },
+      };
+
+      const autocompleteEvt = new CustomEvent('autocompleteselected', { detail: feature });
+      events.dispatchEvent(autocompleteEvt);
+
+      const manualAdjustEvt = new CustomEvent('manualadjust', { detail: [place.longitude, place.latitude] });
+      events.dispatchEvent(manualAdjustEvt);
+
+      el.value = place.address;
+      autocompleteOptionsList.classList.add('hidden');
+    });
+    autocompleteOptionsList.appendChild(option);
+  }
+}
+
+export {initAddressSearch};

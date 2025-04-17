@@ -217,27 +217,3 @@ h1 {
     border-radius: 6px;
     flex: 1;
 }
-
-.autocomplete-options {
-    position: absolute;
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    margin-top: 5px;
-    padding: 0;
-    list-style-type: none;
-    width: 100%;
-    z-index: 999;
-  }
-  
-
-  
-.autocomplete-options:hover {
-    background-color: #f0f0f0;
-}
-
-.hidden {
-    display: none;
-  }

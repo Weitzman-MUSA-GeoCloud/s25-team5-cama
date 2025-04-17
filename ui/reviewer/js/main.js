@@ -39,29 +39,24 @@ map.on('load', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('search-bar');
-  const mapboxKey = 'pk.eyJ1Ijoic3lsdmlhdXBlbm4iLCJhIjoiY20weTdodGpiMGt4MDJsb2UzbzZnd2FmMyJ9.H6mn-LOHFUdv7swHpM7enA';
+  const searchInput = document.querySelector('#search-bar input[type="text"]');
 
-  // Initialize a custom event target
   const events = new EventTarget();
 
-  // Add event listeners for the custom events
   events.addEventListener('autocompleteselected', (event) => {
     const feature = event.detail;
     console.log('Address selected:', feature.properties.address);
-    // You can do something with the selected address
   });
 
   events.addEventListener('manualadjust', (event) => {
     const coordinates = event.detail;
     console.log('Manual adjustment coordinates:', coordinates);
-    // Do something with the coordinates
   });
 
-  // Only initialize the address search if the element exists
   if (searchInput) {
-    initAddressSearch(searchInput, events, mapboxKey);
+    initAddressSearch(searchInput, events); // no mapboxKey passed
   } else {
-    console.error("The address search input element was not found.");
+    console.error("The address input element was not found.");
   }
 });
+
