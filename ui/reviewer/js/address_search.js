@@ -54,4 +54,4 @@ async function showAutocompleteOptions() {
   }
 }
 
-export {initAddressSearch};
+export {showAutocompleteOptions};
