@@ -248,7 +248,7 @@ gcloud functions deploy load_neighborhoods \
 gcloud functions call load_neighborhoods --region=us-east4 --project=musa5090s25-team5
 ```
 
-*load_neighborhoods:*
+*generate_philadelphia_assessment_chart_configs:*
 ```shell
 cd ../generate_philadelphia_assessment_chart_configs
 
@@ -266,6 +266,26 @@ gcloud functions deploy generate_philadelphia_assessment_chart_configs \
 --trigger-http
 
 gcloud functions call generate_philadelphia_assessment_chart_configs --region=us-east4 --project=musa5090s25-team5
+```
+
+*generate_neighborhood_assessment_chart_configs:*
+```shell
+cd ../generate_neighborhood_assessment_chart_configs
+
+gcloud functions deploy generate_neighborhood_assessment_chart_configs \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_neighborhood_assessment_chart_configs \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call generate_neighborhood_assessment_chart_configs --region=us-east4 --project=musa5090s25-team5
 ```
 
 *the whole workflow:*
