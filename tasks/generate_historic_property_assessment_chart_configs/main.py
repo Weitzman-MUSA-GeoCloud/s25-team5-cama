@@ -48,7 +48,7 @@ def generate_historic_property_assessment_chart_configs(request):
                 property_dict[property_id] = {
                     "neighborhood": str(row.neighborhood),
                     "address": str(row.property_address),
-                    "geog": str(row.geog),
+                    "geog": str(row.property_geog),
                     "market_value_historic": {str(year): None for year in YEARS},
                     "market_value_2025": int(row.market_value_2025) if row.market_value_2025 is not None else None
                 }
