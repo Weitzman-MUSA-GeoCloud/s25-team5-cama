@@ -4,6 +4,6 @@ SELECT
   upper_bound,
   property_count
 FROM
-  derived.tax_year_philadelphia_assessment_bins
+  derived.current_year_philadelphia_assessment_bins
 ORDER BY
   lower_bound
