@@ -1,10 +1,12 @@
 SELECT
+  property_id,
   tax_year,
-  lower_bound,
-  upper_bound,
-  property_count,
-  neighborhood
+  market_value,
+  market_value_2025,
+  neighborhood,
+  property_address,
+  property_geog
 FROM
-  derived.tax_year_neighborhood_assessment_bins
+  derived.historic_year_property_assessment
 ORDER BY
-  neighborhood, lower_bound
+  property_id, tax_year

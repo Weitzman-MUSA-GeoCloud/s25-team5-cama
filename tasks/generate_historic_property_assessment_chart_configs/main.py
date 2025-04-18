@@ -10,9 +10,12 @@ load_dotenv()
 
 DATA_DIR = Path(__file__).parent
 
+# List of years to process
+YEARS = list(range(2016, 2025))
+
 
 @functions_framework.http
-def generate_neighborhood_assessment_chart_configs(request):
+def generate_historic_property_assessment_chart_configs(request):
     # List of SQL files to process
     sql_files = [
         "chart_historic_year_property.sql",
@@ -34,19 +37,25 @@ def generate_neighborhood_assessment_chart_configs(request):
         query_job = bigquery_client.query(sql)
         results = query_job.result()
 
-        # Format the query results into a JSON structure
-        json_data = []
-        for row in results:
-            json_data.append({
-                "tax_year": int(row.tax_year),
-                "lower_bound": int(row.lower_bound),
-                "upper_bound": int(row.upper_bound),
-                "property_count": int(row.property_count),
-                "neighborhood": str(row.neighborhood)
-            })
+        # Initialize the result dictionary
+        property_dict = {}
 
-        if not json_data:
-            continue
+        for row in results:
+            property_id = str(row.property_id)
+
+            # Initialize property entry if not already created
+            if property_id not in property_dict:
+                property_dict[property_id] = {
+                    "neighborhood": str(row.neighborhood),
+                    "address": str(row.property_address),
+                    "geog": str(row.geog),
+                    "market_value_historic": {str(year): None for year in YEARS},
+                    "market_value_2025": int(row.market_value_2025) if row.market_value_2025 is not None else None
+                }
+
+            # Assign market value for historic years
+            if 2016 <= row.tax_year <= 2024:
+                property_dict[property_id]["market_value_historic"][str(row.tax_year)] = int(row.market_value)
 
         # Generate the GCS blob name by replacing '.sql' with '.json'
         json_filename = filename.replace(".sql", ".json")
@@ -55,7 +64,7 @@ def generate_neighborhood_assessment_chart_configs(request):
         # Upload the JSON data to GCS
         blob = bucket.blob(blob_path)
         blob.upload_from_string(
-            data=json.dumps(json_data, indent=2),
+            data=json.dumps(property_dict, indent=2),
             content_type="application/json"
         )
 
