@@ -313,6 +313,26 @@ curl -X POST https://us-east4-musa5090s25-team5.cloudfunctions.net/generate_hist
 --max-time 600
 ```
 
+*generate_property_assessment_change_value:*
+```shell
+cd ../generate_property_assessment_change_value
+
+gcloud functions deploy generate_property_assessment_change_value \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_property_assessment_change_value \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=4Gi \
+--timeout=300s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call generate_property_assessment_change_value --region=us-east4 --project=musa5090s25-team5
+```
+
 *the whole workflow:*
 
 Note: use gcloud scheduler jobs create if deploying scheduler for the first time
