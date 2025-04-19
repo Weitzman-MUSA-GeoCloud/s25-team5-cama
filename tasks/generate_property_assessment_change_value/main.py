@@ -12,11 +12,10 @@ DATA_DIR = Path(__file__).parent
 
 
 @functions_framework.http
-def generate_philadelphia_assessment_chart_configs(request):
+def generate_property_assessment_change_value(request):
     # List of SQL files to process
     sql_files = [
-        "chart_current_year_philadelphia.sql",
-        "chart_tax_year_philadelphia.sql",
+        "map_property_change_value.sql"
     ]
 
     bigquery_client = bigquery.Client()
@@ -39,10 +38,15 @@ def generate_philadelphia_assessment_chart_configs(request):
         json_data = []
         for row in results:
             json_data.append({
-                "tax_year": int(row.tax_year),
-                "lower_bound": int(row.lower_bound),
-                "upper_bound": int(row.upper_bound),
-                "property_count": int(row.property_count)
+                "property_id": str(row.property_id),
+                "neighborhood": str(row.neighborhood),
+                "address": str(row.property_address),
+                "geog": str(row.property_geog),
+                "market_value_2024": int(row.market_value_2024) if row.market_value_2024 is not None else None,
+                "market_value_2025": int(row.market_value_2025) if row.market_value_2025 is not None else None,
+                "change_absolute": int(row.change_absolute) if row.change_absolute is not None else None,
+                "change_percent": float(row.change_percent) if row.change_percent is not None else None,
+                "change_type": str(row.change_type) if row.change_type is not None else None
             })
 
         if not json_data:

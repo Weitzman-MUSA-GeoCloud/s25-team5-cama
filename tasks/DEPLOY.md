@@ -248,6 +248,91 @@ gcloud functions deploy load_neighborhoods \
 gcloud functions call load_neighborhoods --region=us-east4 --project=musa5090s25-team5
 ```
 
+*generate_philadelphia_assessment_chart_configs:*
+```shell
+cd ../generate_philadelphia_assessment_chart_configs
+
+gcloud functions deploy generate_philadelphia_assessment_chart_configs \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_philadelphia_assessment_chart_configs \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call generate_philadelphia_assessment_chart_configs --region=us-east4 --project=musa5090s25-team5
+```
+
+*generate_neighborhood_assessment_chart_configs:*
+```shell
+cd ../generate_neighborhood_assessment_chart_configs
+
+gcloud functions deploy generate_neighborhood_assessment_chart_configs \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_neighborhood_assessment_chart_configs \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call generate_neighborhood_assessment_chart_configs --region=us-east4 --project=musa5090s25-team5
+```
+
+*generate_historic_property_assessment_chart_configs:*
+```shell
+cd ../generate_historic_property_assessment_chart_configs
+
+gcloud functions deploy generate_historic_property_assessment_chart_configs \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_historic_property_assessment_chart_configs \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=8Gi \
+--timeout=600s \
+--no-allow-unauthenticated \
+--trigger-http
+
+# Need to set higher timeout
+TOKEN=$(gcloud auth print-identity-token)
+
+curl -X POST https://us-east4-musa5090s25-team5.cloudfunctions.net/generate_historic_property_assessment_chart_configs \
+-H "Authorization: Bearer $TOKEN" \
+--max-time 600
+```
+
+*generate_property_assessment_change_value:*
+```shell
+cd ../generate_property_assessment_change_value
+
+gcloud functions deploy generate_property_assessment_change_value \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=generate_property_assessment_change_value \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
+--memory=4Gi \
+--timeout=300s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call generate_property_assessment_change_value --region=us-east4 --project=musa5090s25-team5
+```
+
 *the whole workflow:*
 
 Note: use gcloud scheduler jobs create if deploying scheduler for the first time

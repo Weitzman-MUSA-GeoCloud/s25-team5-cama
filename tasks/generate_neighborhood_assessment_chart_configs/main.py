@@ -4,52 +4,60 @@ import json
 from google.cloud import storage
 from google.cloud import bigquery
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
+
+DATA_DIR = Path(__file__).parent
 
 
 @functions_framework.http
 def generate_neighborhood_assessment_chart_configs(request):
-    # Step 1: Query the BigQuery table
-    query = """
-        SELECT
-          tax_year,
-          lower_bound,
-          upper_bound,
-          property_count
-        FROM
-          derived.tax_year_assessment_bins
-        ORDER BY lower_bound
-    """
+    # List of SQL files to process
+    sql_files = [
+        "chart_current_year_neighborhood.sql",
+        "chart_tax_year_neighborhood.sql",
+    ]
 
     bigquery_client = bigquery.Client()
-    query_job = bigquery_client.query(query)
-    results = query_job.result()
-
-    # Step 2: Convert results to JSON
-    json_data = []
-    for row in results:
-        json_data.append({
-            "tax_year": row.tax_year,
-            "lower_bound": int(row.lower_bound),
-            "upper_bound": int(row.upper_bound),
-            "property_count": int(row.property_count)
-        })
-
-    # Step 3: Upload to GCS
-    bucket_name = os.getenv('DATA_LAKE_BUCKET_CONFIG')
-    blobname = "tax_year_assessment_bins.json"
-
     storage_client = storage.Client()
+
+    bucket_name = os.getenv('DATA_LAKE_BUCKET_PUBLIC')
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blobname)
 
-    blob.upload_from_string(
-        data=json.dumps(json_data, indent=2),
-        content_type="application/json"
-    )
+    for filename in sql_files:
+        # Read SQL query from file
+        sql_path = DATA_DIR / filename
+        with open(sql_path, "r", encoding="utf-8") as f:
+            sql = f.read()
 
-    return (
-        "2024 assessment distribution chart config generated and uploaded.",
-        200
-    )
+        # Execute the query
+        query_job = bigquery_client.query(sql)
+        results = query_job.result()
+
+        # Format the query results into a JSON structure
+        json_data = []
+        for row in results:
+            json_data.append({
+                "tax_year": int(row.tax_year),
+                "lower_bound": int(row.lower_bound),
+                "upper_bound": int(row.upper_bound),
+                "property_count": int(row.property_count),
+                "neighborhood": str(row.neighborhood)
+            })
+
+        if not json_data:
+            continue
+
+        # Generate the GCS blob name by replacing '.sql' with '.json'
+        json_filename = filename.replace(".sql", ".json")
+        blob_path = f"configs/{json_filename}"
+
+        # Upload the JSON data to GCS
+        blob = bucket.blob(blob_path)
+        blob.upload_from_string(
+            data=json.dumps(json_data, indent=2),
+            content_type="application/json"
+        )
+
+    return "All configs generated and uploaded successfully.", 200
