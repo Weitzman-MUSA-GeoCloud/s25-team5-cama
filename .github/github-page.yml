@@ -2,7 +2,8 @@ name: Deploy UI to GitHub Pages
 
 on:
   push:
-    branches: GitHub-pages
+    branches:
+      - GitHub-pages
 
 jobs:
   deploy:
