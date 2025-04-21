@@ -86,3 +86,39 @@ main:
                             url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/load_neighborhoods'
                             auth:
                                 type: OIDC
+
+                - landmarksPipeline:
+                    steps:
+                    - extractLandmarks:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/extract_landmarks'
+                            auth:
+                                type: OIDC
+                
+                - marketsPipeline:
+                    steps:
+                    - extractMarkets:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/extract_markets'
+                            auth:
+                                type: OIDC
+
+                - crimesPipeline:
+                    steps:
+                    - extractCrimes:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/extract_crimes'
+                            auth:
+                                type: OIDC
+                
+                - request311Pipeline:
+                    steps:
+                    - extract311:
+                        call: http.post
+                        args:
+                            url: 'https://us-east4-musa5090s25-team5.cloudfunctions.net/extract_311'
+                            auth:
+                                type: OIDC    

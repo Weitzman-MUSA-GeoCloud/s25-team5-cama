@@ -72,12 +72,93 @@ gcloud functions deploy extract_neighborhoods \
 --entry-point=extract_neighborhoods \
 --service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
 --set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
 --memory=4Gi \
 --timeout=240s \
 --no-allow-unauthenticated \
 --trigger-http
 
 gcloud functions call extract_neighborhoods --region=us-east4 --project=musa5090s25-team5
+```
+
+*extract_landmarks:*
+```shell
+cd ../extract_landmarks
+
+gcloud functions deploy extract_landmarks \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=extract_landmarks \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call extract_landmarks --region=us-east4 --project=musa5090s25-team5
+```
+
+*extract_markets:*
+```shell
+cd ../extract_markets
+
+gcloud functions deploy extract_markets \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=extract_markets \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call extract_markets --region=us-east4 --project=musa5090s25-team5
+```
+
+*extract_crimes:*
+```shell
+cd ../extract_crimes
+
+gcloud functions deploy extract_crimes \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=extract_crimes \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--memory=2Gi \
+--timeout=120s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call extract_crimes --region=us-east4 --project=musa5090s25-team5
+```
+
+*extract_311:*
+```shell
+cd ../extract_311
+
+gcloud functions deploy extract_311 \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=extract_311 \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--set-env-vars=DATA_LAKE_BUCKET_RAW=musa5090s25-team5-raw_data \
+--memory=3Gi \
+--timeout=200s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call extract_311 --region=us-east4 --project=musa5090s25-team5
 ```
 
 *prepare_opa_properties:*
@@ -246,6 +327,44 @@ gcloud functions deploy load_neighborhoods \
 --trigger-http
 
 gcloud functions call load_neighborhoods --region=us-east4 --project=musa5090s25-team5
+```
+
+*create_table_for_json:*
+```shell
+cd ../create_table_for_json
+
+gcloud functions deploy create_table_for_json \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=create_table_for_json \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--memory=4Gi \
+--timeout=240s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call create_table_for_json --region=us-east4 --project=musa5090s25-team5
+```
+
+*property_tiles_info:*
+```shell
+cd ../property_tiles_info
+
+gcloud functions deploy property_tiles_info \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=property_tiles_info \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--memory=5Gi \
+--timeout=300s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call property_tiles_info --region=us-east4 --project=musa5090s25-team5
 ```
 
 *the whole workflow:*
