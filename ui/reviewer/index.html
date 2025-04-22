@@ -17,8 +17,8 @@
             <h1> </i><i class="fas fa-home"></i>&nbsp<span class="title">Property Philly</span></h1>
 
             <nav class="nav-buttons">
-                <button id="workshop-btn">Current Assessment Value</button>
-                <button id="transitscore-btn">2024 Assessment Value</button>
+                <button id="current-btn">Predicted Assessment Value</button>
+                <button id="past-btn">2024 Assessment Value</button>
             </nav>
         </div>
     
@@ -37,22 +37,22 @@
                 <p class="value"><span class="valueText">13.7</span>&nbsp<i class="fas fa-percent"></i></p>
                 <p class="measure">average change in property value</p>
             </div>
+
+            <div id="vertical-box4">
+                <p class="value"><span class="valueText">$1,000,000,000,000</span>&nbsp</p>
+                <p class="measure">total property values</p>
+            </div>
     
         </div>
 
         <div class="map-container">
             <div id="search-bar">
-                <input type="text" name="address-search" placeholder="Search for address" aria-label="Search around an address or place">
+                <input type="text" id="search" name="address-search" placeholder="Search for address" aria-label="Search around an address">
+                <ul id="suggestions"></ul>
             </div>
-            <button id="filter-button">
-                <i class="fas fa-filter"></i>
+            <button id="reload-button">
+                <i class="fas fa-sync-alt"></i>
             </button>
-            <div id="filter-dropdown" class="dropdown-content">
-                <label><input type="checkbox" id="filter-option-1">Exterior Condition</label>
-                <label><input type="checkbox" id="filter-option-2">New</label>
-                <label><input type="checkbox" id="filter-option-3">Above Average</label>
-                <label><input type="checkbox" id="filter-option-4">Average</label>
-            </div>
             <div id="map"></div>
         </div>
 

@@ -1,4 +1,4 @@
-import { showAutocompleteOptions } from './address_search.js';
+import { searchForAddress } from './search_bar.js';
 
 // Using Maplibre GL
 const map = new maplibregl.Map({
@@ -40,114 +40,204 @@ map.on('load', () => {
     }
   });
 
-  // 🔄 Load neighborhood GeoJSON source
-  map.addSource('neighborhoods', {
+  map.addSource('highlighted-feature', {
     type: 'geojson',
-    data: 'https://storage.googleapis.com/musa5090s25-team5-raw_data/neighborhoods/neighborhoods.geojson'
-  });
-
-  // Display all neighborhoods (light gray)
-  map.addLayer({
-    id: 'neighborhoods-fill',
-    type: 'fill',
-    source: 'neighborhoods',
-    paint: {
-      'fill-color': '#ccc',
-      'fill-opacity': 0.2,
-      'fill-outline-color': '#999'
+    data: {
+      type: 'FeatureCollection',
+      features: []
     }
   });
 
-  // Highlight layer for selected neighborhood (starts off empty)
   map.addLayer({
-    id: 'neighborhood-highlight-layer',
-    type: 'fill',
-    source: 'neighborhoods',
+    id: 'highlighted-feature-line',
+    type: 'line',
+    source: 'highlighted-feature',
     paint: {
-      'fill-color': '#ffbf00',
-      'fill-opacity': 0.4
-    },
-    filter: ['==', 'name', ''] // ← match by 'name' property
+      'line-color': '#FFD700',
+      'line-width': 3
+    }
   });
+
+  const searchInput = document.getElementById('search');
+
+  searchInput.addEventListener('input', function () {
+    const searchQuery = searchInput.value.toLowerCase();
+    const suggestionBox = document.getElementById('suggestions');
+
+  // If the search query is empty, hide the suggestions
+    if (searchQuery.length === 0) {
+      suggestionBox.innerHTML = ''; // Clear the suggestions
+      return; // Exit early to avoid unnecessary processing
+    }
+
+    if (searchQuery.length > 0) { // Start filtering once the query length is sufficient
+      searchForAddress(map, searchQuery);
+    }
+  });
+
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.querySelector('#search-bar input[type="text"]');
-  const events = new EventTarget();
+document.getElementById('reload-button').addEventListener('click', () => {
+  const source = map.getSource('properties');
+  
+  if (source) {
+    // This will force a re-render and refetch the tiles
+    map.removeLayer('properties-fill');
+    map.removeSource('properties');
 
-  // When address is selected from autocomplete
-  events.addEventListener('autocompleteselected', (event) => {
-    const feature = event.detail;
-    console.log('Address selected:', feature.properties.address);
-  });
-
-  // When coordinates are manually adjusted or an address is clicked
-  events.addEventListener('manualadjust', async (event) => {
-    const coordinates = event.detail;
-
-    // Zoom to the selected point
-    map.flyTo({
-      center: coordinates,
-      zoom: 16,
-      speed: 1.2,
-      curve: 1
+    // Re-add the source
+    map.addSource('properties', {
+      type: 'vector',
+      tiles: [
+        'https://storage.googleapis.com/musa5090s25-team5-public/tiles/properties/{z}/{x}/{y}.pbf'
+      ],
+      minzoom: 12,
+      maxzoom: 20
     });
 
-    // 🔴 Highlight selected property
-    const selectedProperty = {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: coordinates
-        },
-        properties: {}
-      }]
-    };
+    // Re-add the layer
+    map.addLayer({
+      id: 'properties-fill',
+      type: 'fill',
+      source: 'properties',
+      'source-layer': 'property_tile_info',
+      paint: {
+        'fill-color': [
+          'interpolate',
+          ['linear'],
+          ['get', 'tax_year_assessed_value'],
+          0, '#f0f9e8',
+          500000, '#bae4bc',
+          1000000, '#7bccc4',
+          5000000, '#2b8cbe',
+          10000000, '#08589e'
+        ],
+        'fill-opacity': 0.4
+      }
+    });
+  }
 
-    if (map.getSource('selected-property')) {
-      map.getSource('selected-property').setData(selectedProperty);
-    } else {
-      map.addSource('selected-property', {
-        type: 'geojson',
-        data: selectedProperty
-      });
-
-      map.addLayer({
-        id: 'selected-property-circle',
-        type: 'circle',
-        source: 'selected-property',
-        paint: {
-          'circle-radius': 10,
-          'circle-color': '#d7263d',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-    }
-
-    // 🟡 Highlight matching neighborhood using Turf.js
-    const neighborhoods = map.getSource('neighborhoods')._data;
-    const point = turf.point(coordinates);
-
-    const matching = neighborhoods.features.find(feature =>
-      turf.booleanPointInPolygon(point, feature)
-    );
-
-    if (matching) {
-      const neighborhoodName = matching.properties.name;
-      map.setFilter('neighborhood-highlight-layer', ['==', ['get', 'name'], neighborhoodName]);
-    } else {
-      // No match: clear highlight
-      map.setFilter('neighborhood-highlight-layer', ['==', 'name', '']);
-    }
+  map.flyTo({
+    center: [-75.1652, 39.9526], // your original center
+    zoom: 12,
+    speed: 1.2 // optional: smoother transition
   });
 
-  // Initialize address search
-  if (searchInput) {
-    initAddressSearch(searchInput, events);
-  } else {
-    console.error("The address input element was not found.");
-  }
+  document.getElementById('search').value = ''; 
+
+  // Clear the highlighted feature
+  map.getSource('highlighted-feature').setData({
+    type: 'FeatureCollection',
+    features: [] // No features, essentially unhighlighting
+  });
+
+  // Reset the highlighted feature ID
+  let highlightedFeatureId = null;
 });
+
+
+//   // 🔄 Load neighborhood GeoJSON source
+//   map.addSource('neighborhoods', {
+//     type: 'geojson',
+//     data: 'https://storage.googleapis.com/musa5090s25-team5-raw_data/neighborhoods/neighborhoods.geojson'
+//   });
+
+//   // Display all neighborhoods (light gray)
+//   map.addLayer({
+//     id: 'neighborhoods-fill',
+//     type: 'fill',
+//     source: 'neighborhoods',
+//     paint: {
+//       'fill-color': '#ccc',
+//       'fill-opacity': 0.2,
+//       'fill-outline-color': '#999'
+//     }
+//   });
+
+//   // Highlight layer for selected neighborhood (starts off empty)
+//   map.addLayer({
+//     id: 'neighborhood-highlight-layer',
+//     type: 'fill',
+//     source: 'neighborhoods',
+//     paint: {
+//       'fill-color': '#ffbf00',
+//       'fill-opacity': 0.4
+//     },
+//     filter: ['==', 'name', ''] // ← match by 'name' property
+//   });
+// });
+
+// document.addEventListener('DOMContentLoaded', () => {
+//   const searchInput = document.querySelector('#search-bar input[type="text"]');
+//   const events = new EventTarget();
+
+//   // When address is selected from autocomplete
+//   events.addEventListener('autocompleteselected', (event) => {
+//     const feature = event.detail;
+//     console.log('Address selected:', feature.properties.address);
+//   });
+
+//   // When coordinates are manually adjusted or an address is clicked
+//   events.addEventListener('manualadjust', async (event) => {
+//     const coordinates = event.detail;
+
+//     // Zoom to the selected point
+//     map.flyTo({
+//       center: coordinates,
+//       zoom: 16,
+//       speed: 1.2,
+//       curve: 1
+//     });
+
+//     // 🔴 Highlight selected property
+//     const selectedProperty = {
+//       type: 'FeatureCollection',
+//       features: [{
+//         type: 'Feature',
+//         geometry: {
+//           type: 'Point',
+//           coordinates: coordinates
+//         },
+//         properties: {}
+//       }]
+//     };
+
+//     if (map.getSource('selected-property')) {
+//       map.getSource('selected-property').setData(selectedProperty);
+//     } else {
+//       map.addSource('selected-property', {
+//         type: 'geojson',
+//         data: selectedProperty
+//       });
+
+//       map.addLayer({
+//         id: 'selected-property-circle',
+//         type: 'circle',
+//         source: 'selected-property',
+//         paint: {
+//           'circle-radius': 10,
+//           'circle-color': '#d7263d',
+//           'circle-stroke-width': 2,
+//           'circle-stroke-color': '#ffffff'
+//         }
+//       });
+//     }
+
+//     // 🟡 Highlight matching neighborhood using Turf.js
+//     const neighborhoods = map.getSource('neighborhoods')._data;
+//     const point = turf.point(coordinates);
+
+//     const matching = neighborhoods.features.find(feature =>
+//       turf.booleanPointInPolygon(point, feature)
+//     );
+
+//     if (matching) {
+//       const neighborhoodName = matching.properties.name;
+//       map.setFilter('neighborhood-highlight-layer', ['==', ['get', 'name'], neighborhoodName]);
+//     } else {
+//       // No match: clear highlight
+//       map.setFilter('neighborhood-highlight-layer', ['==', 'name', '']);
+//     }
+//   });
+
+
