@@ -20,21 +20,10 @@ main {
     grid-row: 1;
     grid-column: 1 / -1;
     padding: 10px;
-}
-
-/* .banner {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    background-color: white;
-    color: black;
-    padding: 10px 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-} */
+    justify-content: space-between;
+}
 
 h1 {
     font-size: 2rem;
@@ -50,6 +39,24 @@ h1 {
     overflow: hidden;
   }
 
+  /* Navigation buttons */
+.nav-buttons button {
+    margin: 0 1px;
+    padding: 10px 15px;
+    background-color: #cddfec;
+    color: #292929;
+    border: none;
+    cursor: pointer;
+    font-family: Trebuchet, sans-serif;
+    font-size: 16px;
+    transition: background-color 0.2s ease;
+    border-radius: 20px;
+}
+
+.nav-buttons button:hover {
+    background-color: #545454;
+    color: white; /* Change text color */
+}
 
 #statistic {
     grid-row: 2;
@@ -83,6 +90,15 @@ h1 {
     flex: 1 1 250px; /* allow shrinking/growing */
     min-width: 250px;
     background-color: #eee0cb;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#vertical-box4 {
+    flex: 1 1 250px; /* allow shrinking/growing */
+    min-width: 250px;
+    background-color: #C2C0D8;
     text-align: center;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -124,6 +140,46 @@ h1 {
     overflow: hidden;
 }
 
+.map-container {
+    position: relative; /* This makes the search bar position relative to the map container */
+    width: 100%; /* Adjust this to the width of your map */
+    height: 100%; /* Adjust this to your map height */
+}
+
+#search-bar {
+    width: 30%; /* This will resize relative to the map container */
+    padding-top: 10px;
+    border-radius: 75px;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    position: absolute; 
+    top: 10px; 
+    left: 5%; 
+    font-size: 14px;
+    z-index: 1000; 
+    transition: width 0.3s ease; 
+}
+
+/* Filter button */
+#reload-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background-color: white;
+    color: #7c7f81;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+#reload-button:hover {
+    background-color: #292929;
+    color: white;
+}
+
 #graphs {
     height: 100%;
     grid-column: 2;
@@ -145,3 +201,35 @@ h1 {
     border-radius: 6px;
     flex: 1;
 }
+
+#neighborhood-select {
+    margin-bottom: 20px; 
+  }
+
+#suggestions {
+    list-style: none;             
+    margin: 0;
+    padding: 0;
+    font-family: Trebuchet, sans-serif; 
+    background-color: white;      
+    border-top: none;              
+    width: 100%;        
+    position: absolute;
+    top:100%;
+    left: 0;           
+    z-index: 9999;
+    max-height: 200px;             
+    overflow-y: auto;
+    color: black;
+  }
+  
+  #suggestions li {
+    padding: 8px 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  #suggestions li:hover {
+    background-color: #f0f0f0;
+  }
+  

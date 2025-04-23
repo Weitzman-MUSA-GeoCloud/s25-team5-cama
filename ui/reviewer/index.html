@@ -6,45 +6,68 @@
     <link rel="icon" type="image/x-icon" href="hand.ico">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script> -->
-    <!-- <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" /> -->
     <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet"/>
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 </head>
 
 <body>
     <main>
         <div class="header-container">
             <h1> </i><i class="fas fa-home"></i>&nbsp<span class="title">Property Philly</span></h1>
+
+            <nav class="nav-buttons">
+                <button id="current-btn">Predicted Assessment Value</button>
+                <button id="past-btn">2024 Assessment Value</button>
+            </nav>
         </div>
     
         <div id="statistic">
             <div id="vertical-box1">
                 <p class="value"><span class="valueText">500,000</span>&nbsp<i class="fas fa-arrow-up"></i></p>
-                <p class="measure">properties increased in assessed value</p>
+                <p class="measure">properties increased in value</p>
             </div>
     
             <div id="vertical-box2">
                 <p class="value"><span class="valueText">2,000</span>&nbsp<i class="fas fa-arrow-down"></i></p>
-                <p class="measure">properties decreased in assessed value</p>
+                <p class="measure">properties decreased in value</p>
             </div>
     
             <div id="vertical-box3">
                 <p class="value"><span class="valueText">13.7</span>&nbsp<i class="fas fa-percent"></i></p>
-                <p class="measure">average change on property value</p>
+                <p class="measure">average change in property value</p>
+            </div>
+
+            <div id="vertical-box4">
+                <p class="value"><span class="valueText">$1 trillion</span>&nbsp</p>
+                <p class="measure">total property values</p>
             </div>
     
         </div>
 
-        <div id="map"></div>
+        <div class="map-container">
+            <div id="search-bar">
+                <input type="text" id="search" name="address-search" placeholder="Search for address" aria-label="Search around an address">
+                <ul id="suggestions"></ul>
+            </div>
+            <button id="reload-button">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <div id="map"></div>
+        </div>
 
         <div id="graphs">
             <div class="graph-box" id="graph1"> 
-                <h2> Graph 1 </h2> Philadelphia graph
+                <h2> Graph 1 </h2> 
+                Neighborhood graph 
+                <select id="neighborhood-select">
+                    <option value="">--Select a neighborhood--</option>
+                </select>
             </div>
 
+
             <div class="graph-box" id="graph2"> 
-                <h2> Graph 2 </h2> Neighborhood graph
+                <h2> Graph 2 </h2> Philadelphia graph
             </div>
         </div>
     </main>
