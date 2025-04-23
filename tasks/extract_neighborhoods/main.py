@@ -35,7 +35,13 @@ def extract_neighborhoods(request):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blobname)
     blob.upload_from_filename(filename)
+    print('Uploaded to raw bucket')
 
-    print(f'Uploaded {blobname} to {bucket_name}')
+    # Also upload to public bucket
+    bucket_name_public = os.getenv('DATA_LAKE_BUCKET_PUBLIC')
+    bucket_public = storage_client.bucket(bucket_name_public)
+    blob2 = bucket_public.blob(blobname)
+    blob2.upload_from_filename(filename)
+    print('Uploaded to public bucket')
 
-    return f'Downloaded and uploaded gs://{bucket_name}/{blobname}'
+    return f'Downloaded and uploaded into [gs://{bucket_name}/{blobname}] and [gs://{bucket_name_public}/{blobname}]'
