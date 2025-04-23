@@ -1,4 +1,5 @@
 import { searchForAddress } from './search_bar.js';
+import { highlightNeighborhood,findNeighborhoodForParcel, flyToNeighborhood } from './neighborhood.js';
 
 // Using Maplibre GL
 const map = new maplibregl.Map({
@@ -57,6 +58,83 @@ map.on('load', () => {
       'line-width': 3
     }
   });
+
+  map.addSource('neighborhoods', {
+    type: 'geojson',
+    data: 'https://storage.googleapis.com/musa5090s25-team5-public/neighborhoods/neighborhoods.geojson'
+  });
+
+  map.addLayer({
+    id: 'neighborhoods-outline',
+    type: 'line',
+    source: 'neighborhoods',
+    paint: {
+      'line-color': '#8D80AD', 
+      'line-width': 1 
+    }
+  });
+
+  map.addLayer({
+    id: 'neighborhoods-fade',
+    type: 'fill',
+    source: 'neighborhoods',
+    paint: {
+      'fill-color': '#d3d3d3',
+      'fill-opacity': 0 // start fully transparent
+    }
+  }, 'neighborhoods-outline');
+
+  let neighborhoodGeojson = null;
+
+  fetch('https://storage.googleapis.com/musa5090s25-team5-public/neighborhoods/neighborhoods.geojson')
+  .then(response => response.json())
+  .then(data => {
+    neighborhoodGeojson = data;
+
+    // 🏙️ Populate dropdown
+    const select = document.getElementById('neighborhood-select');
+    const names = new Set();
+
+    data.features.forEach(feature => {
+      const name = feature.properties.NAME;
+      if (name && !names.has(name)) {
+        names.add(name);
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      }
+    });
+
+    // 🖱️ Handle dropdown change
+    select.addEventListener('change', function () {
+      const selectedName = this.value;
+      highlightNeighborhood(map, selectedName);
+    });
+
+    // Define handleParcelClick now that data is available
+    function handleParcelClick(parcelFeature) {
+      map.getSource('highlighted-feature').setData({
+        type: 'FeatureCollection',
+        features: [parcelFeature]
+      });
+
+      const [minLng, minLat, maxLng, maxLat] = turf.bbox(parcelFeature);
+      map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+        padding: 40,
+        duration: 1000
+      });
+
+      const selectedNeighborhood = findNeighborhoodForParcel(parcelFeature, neighborhoodGeojson);
+      highlightNeighborhood(map, selectedNeighborhood);
+
+      // Also update the dropdown value to match
+      select.value = selectedNeighborhood || '';
+    }
+
+    window.handleParcelClick = handleParcelClick;
+  });
+
 
   const searchInput = document.getElementById('search');
 
@@ -125,6 +203,8 @@ document.getElementById('reload-button').addEventListener('click', () => {
 
   document.getElementById('search').value = ''; 
 
+  highlightNeighborhood(map, null);
+
   // Clear the highlighted feature
   map.getSource('highlighted-feature').setData({
     type: 'FeatureCollection',
@@ -134,110 +214,4 @@ document.getElementById('reload-button').addEventListener('click', () => {
   // Reset the highlighted feature ID
   let highlightedFeatureId = null;
 });
-
-
-//   // 🔄 Load neighborhood GeoJSON source
-//   map.addSource('neighborhoods', {
-//     type: 'geojson',
-//     data: 'https://storage.googleapis.com/musa5090s25-team5-raw_data/neighborhoods/neighborhoods.geojson'
-//   });
-
-//   // Display all neighborhoods (light gray)
-//   map.addLayer({
-//     id: 'neighborhoods-fill',
-//     type: 'fill',
-//     source: 'neighborhoods',
-//     paint: {
-//       'fill-color': '#ccc',
-//       'fill-opacity': 0.2,
-//       'fill-outline-color': '#999'
-//     }
-//   });
-
-//   // Highlight layer for selected neighborhood (starts off empty)
-//   map.addLayer({
-//     id: 'neighborhood-highlight-layer',
-//     type: 'fill',
-//     source: 'neighborhoods',
-//     paint: {
-//       'fill-color': '#ffbf00',
-//       'fill-opacity': 0.4
-//     },
-//     filter: ['==', 'name', ''] // ← match by 'name' property
-//   });
-// });
-
-// document.addEventListener('DOMContentLoaded', () => {
-//   const searchInput = document.querySelector('#search-bar input[type="text"]');
-//   const events = new EventTarget();
-
-//   // When address is selected from autocomplete
-//   events.addEventListener('autocompleteselected', (event) => {
-//     const feature = event.detail;
-//     console.log('Address selected:', feature.properties.address);
-//   });
-
-//   // When coordinates are manually adjusted or an address is clicked
-//   events.addEventListener('manualadjust', async (event) => {
-//     const coordinates = event.detail;
-
-//     // Zoom to the selected point
-//     map.flyTo({
-//       center: coordinates,
-//       zoom: 16,
-//       speed: 1.2,
-//       curve: 1
-//     });
-
-//     // 🔴 Highlight selected property
-//     const selectedProperty = {
-//       type: 'FeatureCollection',
-//       features: [{
-//         type: 'Feature',
-//         geometry: {
-//           type: 'Point',
-//           coordinates: coordinates
-//         },
-//         properties: {}
-//       }]
-//     };
-
-//     if (map.getSource('selected-property')) {
-//       map.getSource('selected-property').setData(selectedProperty);
-//     } else {
-//       map.addSource('selected-property', {
-//         type: 'geojson',
-//         data: selectedProperty
-//       });
-
-//       map.addLayer({
-//         id: 'selected-property-circle',
-//         type: 'circle',
-//         source: 'selected-property',
-//         paint: {
-//           'circle-radius': 10,
-//           'circle-color': '#d7263d',
-//           'circle-stroke-width': 2,
-//           'circle-stroke-color': '#ffffff'
-//         }
-//       });
-//     }
-
-//     // 🟡 Highlight matching neighborhood using Turf.js
-//     const neighborhoods = map.getSource('neighborhoods')._data;
-//     const point = turf.point(coordinates);
-
-//     const matching = neighborhoods.features.find(feature =>
-//       turf.booleanPointInPolygon(point, feature)
-//     );
-
-//     if (matching) {
-//       const neighborhoodName = matching.properties.name;
-//       map.setFilter('neighborhood-highlight-layer', ['==', ['get', 'name'], neighborhoodName]);
-//     } else {
-//       // No match: clear highlight
-//       map.setFilter('neighborhood-highlight-layer', ['==', 'name', '']);
-//     }
-//   });
-
 

@@ -84,7 +84,7 @@ function searchForAddress(map, query) {
       const centroid = turf.centroid(feature); // You can use Turf.js for centroid calculation
       map.flyTo({
         center: centroid.geometry.coordinates,
-        zoom: 15
+        zoom: 14
       });
     }else {
         console.error('Unsupported geometry type:', geometry.type);
