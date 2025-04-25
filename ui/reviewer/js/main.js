@@ -235,6 +235,7 @@ document.getElementById('reload-button').addEventListener('click', () => {
   });
 
   document.getElementById('search').value = ''; 
+  document.getElementById('neighborhood-select').value = '';
 
   highlightNeighborhood(map, null);
 
