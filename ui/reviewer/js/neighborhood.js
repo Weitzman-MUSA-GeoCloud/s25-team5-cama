@@ -6,7 +6,7 @@ function highlightNeighborhood(map, selectedName) {
   } else {
     map.setPaintProperty('neighborhoods-fade', 'fill-opacity', [
       'case',
-      ['==', ['get', 'map_name'], selectedName],
+      ['==', ['get', 'NAME'], selectedName],
       0,
       0.5
     ]);
@@ -16,7 +16,7 @@ function highlightNeighborhood(map, selectedName) {
 function findNeighborhoodForParcel(parcelFeature, neighborhoodGeojson) {
   for (const hood of neighborhoodGeojson.features) {
     if (booleanPointInPolygon(parcelFeature, hood)) {
-      return hood.properties.map_name;
+      return hood.properties.NAME;
     }
   }
   return null;

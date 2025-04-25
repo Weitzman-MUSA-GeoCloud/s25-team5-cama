@@ -45,15 +45,20 @@ function searchForAddress(map, query) {
 
             suggestionBox.innerHTML = '';
 
-            map.getSource('highlighted-feature').setData(match);
+            const geojsonFeature = {
+              type: 'Feature',
+              geometry: match.geometry,
+              properties: match.properties
+            };
+          
+            // ✅ Call the unified function that handles everything
+            window.handleParcelClick(geojsonFeature);
+          });
 
-            zoomToFeature(map, match);
+          suggestionBox.appendChild(listItem);
         });
-
-        suggestionBox.appendChild(listItem);
-    });
+      }
   }
-}
 
   // Function to zoom to the selected feature
   function zoomToFeature(map, feature) {

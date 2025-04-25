@@ -110,30 +110,59 @@ map.on('load', () => {
     select.addEventListener('change', function () {
       const selectedName = this.value;
       highlightNeighborhood(map, selectedName);
-    });
 
-    // Define handleParcelClick now that data is available
-    function handleParcelClick(parcelFeature) {
       map.getSource('highlighted-feature').setData({
         type: 'FeatureCollection',
-        features: [parcelFeature]
+        features: []
       });
-
-      const [minLng, minLat, maxLng, maxLat] = turf.bbox(parcelFeature);
-      map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
-        padding: 40,
-        duration: 1000
-      });
-
-      const selectedNeighborhood = findNeighborhoodForParcel(parcelFeature, neighborhoodGeojson);
-      highlightNeighborhood(map, selectedNeighborhood);
-
-      // Also update the dropdown value to match
-      select.value = selectedNeighborhood || '';
-    }
-
-    window.handleParcelClick = handleParcelClick;
+      
+      // Find the feature
+      const selectedFeature = neighborhoodGeojson.features.find(
+        f => f.properties.NAME === selectedName
+      );
+      
+      // Zoom to it if found
+      if (selectedFeature) {
+        flyToNeighborhood(map, selectedFeature);
+      }
+    });
   });
+
+  function handleParcelClick(parcelFeature) {
+    map.getSource('highlighted-feature').setData({
+      type: 'FeatureCollection',
+      features: [parcelFeature]
+    });
+  
+    const [minLng, minLat, maxLng, maxLat] = turf.bbox(parcelFeature);
+    map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+      padding: 40,
+      duration: 1000
+    });
+  
+    const centroid = turf.centroid(parcelFeature);
+    const selectedNeighborhood = findNeighborhoodForParcel(centroid, neighborhoodGeojson);
+
+  
+    if (selectedNeighborhood) {
+      highlightNeighborhood(map, selectedNeighborhood);
+  
+      const neighborhoodFeature = neighborhoodGeojson.features.find(
+        f => f.properties.NAME === selectedNeighborhood
+      );
+      
+      if (neighborhoodFeature) {
+        flyToNeighborhood(map, neighborhoodFeature);
+      }
+  
+      // Update dropdown to match
+      const select = document.getElementById('neighborhood-select');
+      select.value = selectedNeighborhood;
+    }
+  }
+  
+
+  window.handleParcelClick = handleParcelClick;
 
 
   const searchInput = document.getElementById('search');
@@ -145,6 +174,10 @@ map.on('load', () => {
   // If the search query is empty, hide the suggestions
     if (searchQuery.length === 0) {
       suggestionBox.innerHTML = ''; // Clear the suggestions
+      map.getSource('highlighted-feature').setData({
+        type: 'FeatureCollection',
+        features: []
+      });
       return; // Exit early to avoid unnecessary processing
     }
 
