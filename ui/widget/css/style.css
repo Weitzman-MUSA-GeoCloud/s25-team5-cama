@@ -3,7 +3,6 @@ Global Settings
 */
 * {
   box-sizing: border-box;
-  /* outline: 1px solid rgba(0, 0, 255, 0.3); */
 }
 
 html {
@@ -107,7 +106,6 @@ Address Input
   justify-content: center;
 
   font-size: 1rem;
-  /* font-weight: bold; */
   color: #ffffff;
 
   border: none;
@@ -201,27 +199,30 @@ Historic Value Chart
 Address Suggestions List
 */
 .address-suggestions {
-  position: absolute;
-  z-index: 10;
+  width: 60%;
+  max-height: 300px;
 
+  top: 100%;
+  left: 0;
   margin: 0;
   padding: 0;
-  list-style: none;
 
-  width: 60%;
-  background-color: #ffffff;
+  list-style: none;
+  position: absolute;
+
   border-top: none;
-  max-height: 200px;
-  overflow-y: auto;
+  font-size: 0.95rem;
+  background-color: #fff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 
-  font-size: 0.95rem;
-  font-family: 'Open Sans', sans-serif;
+  overflow-y: auto;
+  z-index: 10;
 }
 
 .address-suggestions li {
   padding: 10px 12px;
   cursor: pointer;
+
   border-bottom: 1px solid #eee;
   background-color: #fff;
 }
@@ -231,5 +232,5 @@ Address Suggestions List
 }
 
 .address-suggestions li:hover {
-  background-color: #e6f0ff;
+  background-color: #DAEDFE;
 }
