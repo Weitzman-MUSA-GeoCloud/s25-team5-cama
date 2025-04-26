@@ -1,6 +1,7 @@
 import { searchForAddress } from './search_bar.js';
 import { highlightNeighborhood,findNeighborhoodForParcel, flyToNeighborhood } from './neighborhood.js';
 import { createChart } from './charts.js';
+import { updateLayerProperty } from './basemap.js';
 
 let updatingFromAddressClick = false;
 
@@ -42,6 +43,14 @@ map.on('load', () => {
       ],
       'fill-opacity': 0.4
     }
+  });
+
+  document.getElementById('past-btn').addEventListener('click', () => {
+    updateLayerProperty('tax_year_assessed_value');
+  });
+
+  document.getElementById('current-btn').addEventListener('click', () => {
+    updateLayerProperty('current_assessed_value');
   });
 
   map.addSource('highlighted-feature', {

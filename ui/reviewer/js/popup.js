@@ -20,9 +20,9 @@ function showParcelPopup(map, feature) {
     const content = `
         <div style="font-family:Trebuchet MS, sans-serif; font-size:14px;">
             <strong>${address}</strong><br/>
-            🏠 2024 Assessment: $${Number(assessment2024).toLocaleString()}<br/>
-            🔮 Predicted: $${Number(predicted).toLocaleString()}<br/>
-            📈 Change: ${formattedChange}
+            2024 Assessment: $${Number(assessment2024).toLocaleString()}<br/>
+            Predicted: $${Number(predicted).toLocaleString()}<br/>
+            Change: ${formattedChange}
         </div>
     `;
 
