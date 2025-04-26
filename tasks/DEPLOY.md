@@ -329,6 +329,44 @@ gcloud functions deploy load_neighborhoods \
 gcloud functions call load_neighborhoods --region=us-east4 --project=musa5090s25-team5
 ```
 
+*model:*
+```shell
+cd ../model
+
+gcloud functions deploy model \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=model \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--memory=15Gi \
+--timeout=2400s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call model --region=us-east4 --project=musa5090s25-team5
+```
+
+*model_to_table:*
+```shell
+cd ../model_to_table
+
+gcloud functions deploy model_to_table \
+--gen2 \
+--region=us-east4 \
+--runtime=python312 \
+--source=. \
+--entry-point=model_to_table \
+--service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
+--memory=2Gi \
+--timeout=60s \
+--no-allow-unauthenticated \
+--trigger-http
+
+gcloud functions call model_to_table --region=us-east4 --project=musa5090s25-team5
+```
+
 *create_table_for_json:*
 ```shell
 cd ../create_table_for_json
