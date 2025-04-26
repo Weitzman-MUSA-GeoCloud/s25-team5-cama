@@ -401,24 +401,17 @@ gcloud run deploy query-historic-property-info \
   --allow-unauthenticated
 ```
 
-*generate_property_assessment_change_value:*
+*query_map_property_info:*
 ```shell
-cd ../generate_property_assessment_change_value
+cd ../query_map_property_info
 
-gcloud functions deploy generate_property_assessment_change_value \
---gen2 \
---region=us-east4 \
---runtime=python312 \
---source=. \
---entry-point=generate_property_assessment_change_value \
---service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
---set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
---memory=4Gi \
---timeout=300s \
---no-allow-unauthenticated \
---trigger-http
+gcloud builds submit --tag gcr.io/musa5090s25-team5/query-map-property-info
 
-gcloud functions call generate_property_assessment_change_value --region=us-east4 --project=musa5090s25-team5
+gcloud run deploy query-map-property-info \
+  --image gcr.io/musa5090s25-team5/query-map-property-info \
+  --project musa5090s25-team5 \
+  --region us-east4 \
+  --allow-unauthenticated
 ```
 
 *property_tiles_info:*
