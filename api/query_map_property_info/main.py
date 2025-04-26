@@ -17,7 +17,7 @@ def query_map_property_info(request):
             response.headers['Access-Control-Allow-Origin'] = '*'
             return response
 
-        # Step 1: Query exactly matching address
+        # Query exactly matching address
         query = """
             WITH base_data AS (
                 SELECT
