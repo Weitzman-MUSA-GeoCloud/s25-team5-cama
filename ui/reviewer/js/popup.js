@@ -1,34 +1,46 @@
-function showParcelPopup(map, feature) {
+let activePopup = null;
+
+function showParcelPopup(map, feature, apiData) {
     const props = feature.properties;
-    const coords = turf.centroid(feature).geometry.coordinates; // Get parcel center for popup
+    const coords = turf.centroid(feature).geometry.coordinates;
 
-    // Extract needed values
     const address = props.address;
-    const assessment2024 = props.assessment_2024;
-    const predicted = props.predicted_assessment;
+    const assessment2024 = apiData.market_value_2024;
+    const predicted = apiData.market_value_2025;
+    const changePercent = apiData.change_percent;
 
-    // Get % change from assessmentChanges JSON
-    const key = props.address || address.toLowerCase(); // Use whatever your JSON is keyed by
-    const changePercent = assessmentChanges[key]?.change_percent;
-
-    // Format % change
     const formattedChange = changePercent !== undefined
         ? `<span style="color:${changePercent >= 0 ? 'green' : 'red'}">${changePercent}%</span>`
         : "N/A";
 
-    // Create popup content
     const content = `
-        <div style="font-family:Trebuchet MS, sans-serif; font-size:14px;">
+        <div style="
+            font-family: 'Trebuchet MS', sans-serif;
+            font-size: 14px;
+            max-width: 300px;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.4;
+        ">
+
+        <div>
             <strong>${address}</strong><br/>
-            2024 Assessment: $${Number(assessment2024).toLocaleString()}<br/>
-            Predicted: $${Number(predicted).toLocaleString()}<br/>
+            2024 Value: $${Number(assessment2024).toLocaleString()}<br/>
+            Predicted Value: $${Number(predicted).toLocaleString()}<br/>
             Change: ${formattedChange}
         </div>
     `;
 
-    // Create and show the popup
-    new maplibregl.Popup({ offset: [0, -10] })
+    // Remove existing popup if there is one
+    if (activePopup) {
+        activePopup.remove();
+    }
+
+    // Create new popup and store it
+    activePopup = new maplibregl.Popup({ offset: [0, -10], maxWidth: "300px" })
         .setLngLat(coords)
         .setHTML(content)
         .addTo(map);
 }
+
+export { showParcelPopup };
