@@ -1,7 +1,7 @@
 import { searchPropertyFromAPI } from "./search_property_api.js";
 import { updatePropertyInfo } from "./update_property_info.js";
+import { createChart } from "./create_chart.js";
 import { resetWidget } from "./reset_widget.js";
-import { createChart } from "./chart.js";
 
 const apiUrl = "https://query-historic-property-info-873709980123.us-east4.run.app";
 
@@ -39,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
             historicData.push({ year: 2025, value: property.market_value_2025, projected: true });
             
             createChart(historicData, "historic-value-chart");
-            // drawHistoricChart(property);
           });
 
           suggestionBox.appendChild(listItem);
