@@ -1,12 +1,13 @@
 import functions_framework
 from google.cloud import bigquery
-from flask import jsonify, request
+from flask import jsonify, request, make_response
 
 # List of years to build historic values
 YEARS = list(range(2016, 2025))
 
 # Initialize BigQuery client globally
 bigquery_client = bigquery.Client()
+
 
 @functions_framework.http
 def query_historic_property_info(request):
@@ -15,7 +16,9 @@ def query_historic_property_info(request):
         address_query = request.args.get('address', '').lower().strip()
 
         if not address_query:
-            return jsonify([]), 200  # Return empty list if no address provided
+            response = make_response(jsonify([]), 200)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
 
         # Step 1: First query - get up to 6 distinct property_ids
         property_id_sql = """
@@ -35,12 +38,12 @@ def query_historic_property_info(request):
         property_id_query_job = bigquery_client.query(property_id_sql, job_config=property_id_job_config)
         property_id_results = property_id_query_job.result()
 
-        # Correctly collect property IDs as integers
         property_ids = [int(row.property_id) for row in property_id_results]
 
-        # If no matching property_ids found, return empty list
         if not property_ids:
-            return jsonify([]), 200
+            response = make_response(jsonify([]), 200)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
 
         # Step 2: Second query - get full details for those property_ids
         property_detail_sql = """
@@ -71,7 +74,7 @@ def query_historic_property_info(request):
         property_map = {}
 
         for row in results:
-            property_id = str(row.property_id)  # Convert to string for output JSON
+            property_id = str(row.property_id)
 
             if property_id not in property_map:
                 property_map[property_id] = {
@@ -86,11 +89,13 @@ def query_historic_property_info(request):
             if 2016 <= row.tax_year <= 2024:
                 property_map[property_id]["market_value_historic"][str(row.tax_year)] = int(row.market_value)
 
-        # Output: list of property dicts
         properties_list = list(property_map.values())
 
-        return jsonify(properties_list)
+        response = make_response(jsonify(properties_list), 200)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
 
     except Exception as e:
-        # Catch any error and return HTTP 500 with error message
-        return jsonify({"error": str(e)}), 500
+        error_response = make_response(jsonify({"error": str(e)}), 500)
+        error_response.headers['Access-Control-Allow-Origin'] = '*'
+        return error_response
