@@ -39,6 +39,13 @@ h1 {
     overflow: hidden;
   }
 
+.nav-buttons button.active {
+    background-color: #5d839d;  /* dark grey background */
+    color: white;
+    font-weight: bold;
+    border: none;
+}
+
   /* Navigation buttons */
 .nav-buttons button {
     margin: 0 1px;
@@ -197,13 +204,21 @@ h1 {
 
 .graph-box {
     background-color: #eee;
-    padding: 10px;
+    padding: 8px;
     border-radius: 6px;
     flex: 1;
 }
 
+svg {
+    display: block;
+    visibility: visible !important;
+    width: 100%; 
+    height: 100%;
+    flex-grow: 1;
+}
+
 #neighborhood-select {
-    margin-bottom: 20px; 
+    margin-bottom: 5px; 
   }
 
 #suggestions {

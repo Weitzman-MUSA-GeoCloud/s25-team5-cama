@@ -1,5 +1,9 @@
 import { searchForAddress } from './search_bar.js';
 import { highlightNeighborhood,findNeighborhoodForParcel, flyToNeighborhood } from './neighborhood.js';
+import { createChart } from './charts.js';
+import { updateLayerProperty } from './basemap.js';
+
+let updatingFromAddressClick = false;
 
 // Using Maplibre GL
 const map = new maplibregl.Map({
@@ -41,6 +45,14 @@ map.on('load', () => {
     }
   });
 
+  document.getElementById('past-btn').addEventListener('click', () => {
+    updateLayerProperty('tax_year_assessed_value');
+  });
+
+  document.getElementById('current-btn').addEventListener('click', () => {
+    updateLayerProperty('current_assessed_value');
+  });
+
   map.addSource('highlighted-feature', {
     type: 'geojson',
     data: {
@@ -62,6 +74,37 @@ map.on('load', () => {
   map.addSource('neighborhoods', {
     type: 'geojson',
     data: 'https://storage.googleapis.com/musa5090s25-team5-public/neighborhoods/neighborhoods.geojson'
+  });
+
+  fetch('https://storage.googleapis.com/musa5090s25-team5-public/neighborhoods/neighborhoods.geojson')
+  .then(response => response.json())
+  .then(data => {
+    const bbox = [-75.5, 39.8, -74.9, 40.15]; // Bounding box around Philly
+    const outer = turf.bboxPolygon(bbox);
+
+    // Combine all neighborhood geometries into one MultiPolygon
+    const combined = turf.combine({
+      type: "FeatureCollection",
+      features: data.features
+    });
+    const combinedNeighborhoods = turf.buffer(combined.features[0], 0); // Clean geometry
+    const mask = turf.difference(outer, combinedNeighborhoods);
+
+    // Add the mask as a source/layer
+    map.addSource('mask', {
+      type: 'geojson',
+      data: mask
+    });
+
+    map.addLayer({
+      id: 'mask-layer',
+      type: 'fill',
+      source: 'mask',
+      paint: {
+        'fill-color': '#d3d3d3',
+        'fill-opacity': 0.6
+      }
+    }, 'neighborhoods-outline');
   });
 
   map.addLayer({
@@ -109,31 +152,99 @@ map.on('load', () => {
     // 🖱️ Handle dropdown change
     select.addEventListener('change', function () {
       const selectedName = this.value;
+      const selectedYear = document.querySelector(".nav-buttons button.active")?.getAttribute("data-year");
+
       highlightNeighborhood(map, selectedName);
+
+      if (!updatingFromAddressClick) {
+        map.getSource('highlighted-feature').setData({
+          type: 'FeatureCollection',
+          features: []
+        });
+      }
+      
+      // ✅ Always reset flag after dropdown change
+      updatingFromAddressClick = false;
+      
+      
+      // Find the feature
+      const selectedFeature = neighborhoodGeojson.features.find(
+        f => f.properties.NAME === selectedName
+      );
+
+      // Zoom to it if found
+      if (selectedFeature) {
+        flyToNeighborhood(map, selectedFeature);
+      }
+
+      if (selectedName && selectedYear) {
+        fetch(neighborhoodData[selectedYear])
+          .then(response => response.json())
+          .then(data => {
+            const filteredData = data.filter(d => d.neighborhood === selectedName);
+            createChart(filteredData, "graph1");
+          })
+          .catch(error => console.error("Error loading neighborhood chart:", error));
+      }
+      
     });
+  });
 
-    // Define handleParcelClick now that data is available
-    function handleParcelClick(parcelFeature) {
-      map.getSource('highlighted-feature').setData({
-        type: 'FeatureCollection',
-        features: [parcelFeature]
-      });
+  function handleParcelClick(parcelFeature) {
+    map.getSource('highlighted-feature').setData({
+      type: 'FeatureCollection',
+      features: [parcelFeature]
+    });
+  
+    const [minLng, minLat, maxLng, maxLat] = turf.bbox(parcelFeature);
+    map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+      padding: 40,
+      duration: 1000
+    });
+  
+    const centroid = turf.centroid(parcelFeature);
+    const selectedNeighborhood = findNeighborhoodForParcel(centroid, neighborhoodGeojson);
 
-      const [minLng, minLat, maxLng, maxLat] = turf.bbox(parcelFeature);
-      map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
-        padding: 40,
-        duration: 1000
-      });
-
-      const selectedNeighborhood = findNeighborhoodForParcel(parcelFeature, neighborhoodGeojson);
+  
+    if (selectedNeighborhood) {
       highlightNeighborhood(map, selectedNeighborhood);
+  
+      const neighborhoodFeature = neighborhoodGeojson.features.find(
+        f => f.properties.NAME === selectedNeighborhood
+      );
+      
+      const selectedYear = document.querySelector(".nav-buttons button.active")?.getAttribute("data-year") || '2024';
 
-      // Also update the dropdown value to match
-      select.value = selectedNeighborhood || '';
+      if (!selectedYear) {
+        console.warn("No assessment year selected. Defaulting to 2024.");
+        return;
     }
 
-    window.handleParcelClick = handleParcelClick;
-  });
+    fetch(neighborhoodData[selectedYear])
+        .then(response => response.json())
+        .then(data => {
+            const filteredData = data.filter(d => d.neighborhood === selectedNeighborhood);
+            createChart(filteredData, "graph1");
+        })
+
+      if (neighborhoodFeature) {
+        flyToNeighborhood(map, neighborhoodFeature);
+      }
+  
+      // Update dropdown to match
+      const select = document.getElementById('neighborhood-select');
+      select.value = selectedNeighborhood;
+
+      updatingFromAddressClick = true;
+
+      // Trigger the same effect as manually changing the dropdown
+      const event = new Event('change');
+      select.dispatchEvent(event);
+    }
+  }
+  
+
+  window.handleParcelClick = handleParcelClick;
 
 
   const searchInput = document.getElementById('search');
@@ -145,6 +256,10 @@ map.on('load', () => {
   // If the search query is empty, hide the suggestions
     if (searchQuery.length === 0) {
       suggestionBox.innerHTML = ''; // Clear the suggestions
+      map.getSource('highlighted-feature').setData({
+        type: 'FeatureCollection',
+        features: []
+      });
       return; // Exit early to avoid unnecessary processing
     }
 
@@ -155,6 +270,69 @@ map.on('load', () => {
 
 });
 
+// Creating charts
+// Define paths for JSON data
+const phillyData = {
+  "2025": "https://storage.googleapis.com/musa5090s25-team5-public/configs/chart_current_year_philadelphia.json",
+  "2024": "https://storage.googleapis.com/musa5090s25-team5-public/configs/chart_tax_year_philadelphia.json"
+};
+
+const neighborhoodData = {
+  "2025": "https://storage.googleapis.com/musa5090s25-team5-public/configs/chart_current_year_neighborhood.json",
+  "2024": "https://storage.googleapis.com/musa5090s25-team5-public/configs/chart_tax_year_neighborhood.json"
+};
+
+// Initial load for 2024 data and activate the 2024 button
+window.addEventListener('DOMContentLoaded', () => {
+  const defaultYear = '2024';
+  const defaultButton = document.getElementById('past-btn');
+  defaultButton.classList.add('active');
+
+  fetch(phillyData[defaultYear])
+    .then(response => response.json())
+    .then(data => {
+      const filteredData = data.filter(d => d.tax_year == defaultYear);
+      createChart(filteredData, "graph2");
+    })
+    .catch(error => console.error("Error loading initial Philly chart:", error));
+});
+
+// Function to update Philadelphia chart based on button clicks
+document.querySelectorAll(".nav-buttons button").forEach(button => {
+  button.addEventListener("click", () => {
+      const selectedYear = button.getAttribute("data-year");
+      console.log("Selected Year:", selectedYear);
+
+      document.querySelectorAll(".nav-buttons button").forEach(btn => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      fetch(phillyData[selectedYear])
+          .then(response => response.json())
+          .then(data => {
+            const filteredData = data.filter(d => d.tax_year == selectedYear);
+    
+            // Log the filtered data to check it
+            console.log("Filtered Philly Data for " + selectedYear + ":", filteredData);
+
+            // Call createChart with the filtered data
+            createChart(filteredData, "graph2");
+          })
+          .catch(error => console.error("Error loading Philly data:", error));
+
+      const selectedNeighborhood = document.getElementById("neighborhood-select").value;
+      if (selectedNeighborhood) {
+        fetch(neighborhoodData[selectedYear])
+        .then(response => response.json())
+        .then(data => {
+          const filteredData = data.filter(d => d.neighborhood === selectedNeighborhood);
+          createChart(filteredData, "graph1");
+          })
+          .catch(error => console.error("Error loading neighborhood chart:", error));
+        }
+  });
+});
+
+// Reset button 
 document.getElementById('reload-button').addEventListener('click', () => {
   const source = map.getSource('properties');
   
@@ -202,6 +380,7 @@ document.getElementById('reload-button').addEventListener('click', () => {
   });
 
   document.getElementById('search').value = ''; 
+  document.getElementById('neighborhood-select').value = '';
 
   highlightNeighborhood(map, null);
 
@@ -213,5 +392,7 @@ document.getElementById('reload-button').addEventListener('click', () => {
 
   // Reset the highlighted feature ID
   let highlightedFeatureId = null;
+
+  d3.select("#graph1 svg").remove();
 });
 
