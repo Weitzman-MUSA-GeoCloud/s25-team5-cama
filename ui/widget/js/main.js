@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
               year: +year,
               value: +value
             }));
+
+            historicData.push({ year: 2025, value: property.market_value_2025, projected: true });
             
             createChart(historicData, "historic-value-chart");
             // drawHistoricChart(property);
