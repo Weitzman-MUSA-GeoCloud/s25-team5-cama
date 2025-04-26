@@ -2,6 +2,7 @@ import { searchForAddress } from './search_bar.js';
 import { highlightNeighborhood,findNeighborhoodForParcel, flyToNeighborhood } from './neighborhood.js';
 import { createChart } from './charts.js';
 import { updateLayerProperty } from './basemap.js';
+import { showParcelPopup } from './popup.js';
 
 let updatingFromAddressClick = false;
 
@@ -46,12 +47,17 @@ map.on('load', () => {
   });
 
   document.getElementById('past-btn').addEventListener('click', () => {
-    updateLayerProperty('tax_year_assessed_value');
+    const propertyName = 'tax_year_assessed_value';
+    updateLayerProperty(map, propertyName);
+    console.log("Updating layer color to reflect:", propertyName);
   });
-
+  
   document.getElementById('current-btn').addEventListener('click', () => {
-    updateLayerProperty('current_assessed_value');
+    const propertyName = 'current_assessed_value';
+    updateLayerProperty(map, propertyName);
+    console.log("Updating layer color to reflect:", propertyName);
   });
+  
 
   map.addSource('highlighted-feature', {
     type: 'geojson',
@@ -149,7 +155,7 @@ map.on('load', () => {
       }
     });
 
-    // 🖱️ Handle dropdown change
+    // Handle dropdown change
     select.addEventListener('change', function () {
       const selectedName = this.value;
       const selectedYear = document.querySelector(".nav-buttons button.active")?.getAttribute("data-year");
@@ -163,7 +169,7 @@ map.on('load', () => {
         });
       }
       
-      // ✅ Always reset flag after dropdown change
+      // Always reset flag after dropdown change
       updatingFromAddressClick = false;
       
       
@@ -240,6 +246,17 @@ map.on('load', () => {
       // Trigger the same effect as manually changing the dropdown
       const event = new Event('change');
       select.dispatchEvent(event);
+
+      const address = parcelFeature.properties.address;
+      const url = `https://query-map-property-info-873709980123.us-east4.run.app?address=${encodeURIComponent(address)}`;
+
+      fetch(url)
+          .then(res => res.json())
+          .then(data => {
+              const apiData = Array.isArray(data) ? data[0] : data;
+              showParcelPopup(map, parcelFeature, apiData);
+              console.log('Data from API:', data);
+          })
     }
   }
   

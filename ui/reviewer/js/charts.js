@@ -52,9 +52,14 @@ function createChart(data, containerId) {
         .attr("dy", "0.5em")
         .attr("transform", "rotate(-45)");
 
+
     // Add y-axis
     svg.append("g")
-    .call(d3.axisLeft(y).tickFormat(d3.format(".0s")));
+        .call(d3.axisLeft(y)
+        .tickFormat(d => {
+            return d >= 1000 ? `${d / 1000}k` : d;
+        })
+    );
 
     // X-axis label
     svg.append("text")
