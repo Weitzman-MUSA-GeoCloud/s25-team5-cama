@@ -1,6 +1,5 @@
 import { searchPropertyFromAPI } from "./search_property_api.js";
 import { updatePropertyInfo } from "./update_property_info.js";
-// import { drawHistoricChart } from "./draw_historic_chart.js";
 import { resetWidget } from "./reset_widget.js";
 import { createChart } from "./chart.js";
 
