@@ -388,29 +388,17 @@ gcloud functions deploy generate_neighborhood_assessment_chart_configs \
 gcloud functions call generate_neighborhood_assessment_chart_configs --region=us-east4 --project=musa5090s25-team5
 ```
 
-*generate_historic_property_assessment_chart_configs:*
+*query_historic_property_info:*
 ```shell
-cd ../generate_historic_property_assessment_chart_configs
+cd ../query_historic_property_info
 
-gcloud functions deploy generate_historic_property_assessment_chart_configs \
---gen2 \
---region=us-east4 \
---runtime=python312 \
---source=. \
---entry-point=generate_historic_property_assessment_chart_configs \
---service-account='data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com' \
---set-env-vars=DATA_LAKE_BUCKET_PUBLIC=musa5090s25-team5-public \
---memory=8Gi \
---timeout=600s \
---no-allow-unauthenticated \
---trigger-http
+gcloud builds submit --tag gcr.io/musa5090s25-team5/query-historic-property-info
 
-# Need to set higher timeout
-TOKEN=$(gcloud auth print-identity-token)
-
-curl -X POST https://us-east4-musa5090s25-team5.cloudfunctions.net/generate_historic_property_assessment_chart_configs \
--H "Authorization: Bearer $TOKEN" \
---max-time 600
+gcloud run deploy query-historic-property-info \
+  --image gcr.io/musa5090s25-team5/query-historic-property-info \
+  --project musa5090s25-team5 \
+  --region us-east4 \
+  --allow-unauthenticated
 ```
 
 *generate_property_assessment_change_value:*
