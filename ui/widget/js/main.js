@@ -1,7 +1,7 @@
 import { searchPropertyFromAPI } from "./search_property_api.js";
 import { updatePropertyInfo } from "./update_property_info.js";
-// import { drawHistoricChart } from "./draw_historic_chart.js";
 import { resetWidget } from "./reset_widget.js";
+import { createChart } from "./chart.js";
 
 const apiUrl = "https://query-historic-property-info-873709980123.us-east4.run.app";
 
@@ -27,9 +27,21 @@ document.addEventListener("DOMContentLoaded", () => {
           listItem.addEventListener('click', () => {
             input.value = property.address;
             suggestionBox.innerHTML = '';
+
+            console.log("Selected property data:", property);
+            
             updatePropertyInfo(property);
+            const historicData = Object.entries(property.market_value_historic).map(([year, value]) => ({
+              year: +year,
+              value: +value
+            }));
+
+            historicData.push({ year: 2025, value: property.market_value_2025, projected: true });
+            
+            createChart(historicData, "historic-value-chart");
             // drawHistoricChart(property);
           });
+
           suggestionBox.appendChild(listItem);
         });
       }
