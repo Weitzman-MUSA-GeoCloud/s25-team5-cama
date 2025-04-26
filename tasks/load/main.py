@@ -22,9 +22,11 @@ def load_opa_properties(request):
 def load_pwd_parcels(request):
     return load_data('pwd_parcels', request)
 
+
 @functions_framework.http
 def load_neighborhoods(request):
     return load_data('neighborhoods', request)
+
 
 def load_data(table_name, request):
     sql_files = [f"source_{table_name}.sql", f"core_{table_name}.sql"]
