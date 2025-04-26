@@ -8,7 +8,7 @@ function highlightNeighborhood(map, selectedName) {
       'case',
       ['==', ['get', 'NAME'], selectedName],
       0,
-      0.5
+      0.7
     ]);
   }
 }

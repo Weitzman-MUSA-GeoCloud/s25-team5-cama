@@ -9,6 +9,7 @@
     <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet"/>
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
@@ -17,8 +18,8 @@
             <h1> </i><i class="fas fa-home"></i>&nbsp<span class="title">Property Philly</span></h1>
 
             <nav class="nav-buttons">
-                <button id="current-btn">Predicted Assessment Value</button>
-                <button id="past-btn">2024 Assessment Value</button>
+                <button data-year="2024" id="past-btn">2024 Assessment Value</button>
+                <button data-year="2025" id="current-btn">Predicted Assessment Value</button>
             </nav>
         </div>
     
@@ -58,16 +59,17 @@
 
         <div id="graphs">
             <div class="graph-box" id="graph1"> 
-                <h2> Graph 1 </h2> 
                 Neighborhood graph 
                 <select id="neighborhood-select">
                     <option value="">--Select a neighborhood--</option>
                 </select>
+                <svg id="barChart"></svg>
             </div>
 
 
             <div class="graph-box" id="graph2"> 
-                <h2> Graph 2 </h2> Philadelphia graph
+                Philadelphia graph
+                <svg id="barChart2"></svg>
             </div>
         </div>
     </main>
