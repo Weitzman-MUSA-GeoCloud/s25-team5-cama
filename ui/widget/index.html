@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <!-- Responsive design for different devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Historical Assessment Value Widget</title>
+
+    <!-- Link to Google fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Link to CSS file -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Link to favicon -->
+    <link rel="icon" href="img/favicon.svg" type="image/x-icon">
+  </head>
+
+  <body>
+    <div class="widget-container">
+      
+      <!-- Address Search Bar -->
+      <div class="search-bar">
+        <input type="text" id="address-input" name="address-input" placeholder="Search for your property address ..." aria-label="Search for a property address" autocomplete="off">
+        <button id="clear-button" type="button">Clear</button>
+        <ul id="address-suggestions" class="address-suggestions"></ul>
+      </div>
+
+      <div class="info-chart-row">
+        <!-- Basic Property Information -->
+        <div class="property-info" id="property-info">
+
+          <div class="info-row">
+            <div class="info-label">Property ID</div>
+            <div class="info-value">N/A</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Address</div>
+            <div class="info-value">N/A</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Neighborhood</div>
+            <div class="info-value">N/A</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">2024 Value</div>
+            <div class="info-value">N/A</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">2025 Value</div>
+            <div class="info-value">N/A</div>
+          </div>
+
+        </div>
+
+        <!-- Historic Value Line Chart -->
+        <div class="chart-container">
+          <canvas id="historic-value-chart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Link to JS file -->
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
