@@ -6,14 +6,14 @@ function createChart(data, containerId) {
     container.select("svg").remove();
 
     // Define dimensions
-    const width = 350;
-    const height = 185;
-    const margin = { top: 20, right: 0, bottom: 40, left: 60 };
+    const width = 340;
+    const height = 230;
+    const margin = { top: 20, right: 5, bottom: 80, left: 60 };
 
     // Select the container & append SVG
     const svg = container.append("svg")
-        .attr("width", width)
-        .attr("height", height)
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
         .append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -36,7 +36,7 @@ function createChart(data, containerId) {
         .attr("y", d => y(d.property_count))
         .attr("width", x.bandwidth())
         .attr("height", d => height - margin.bottom - margin.top - y(d.property_count))
-        .attr("fill", "steelblue");
+        .attr("fill", "#A1C5D1");
 
     // Add x-axis
     svg.append("g")
@@ -73,7 +73,7 @@ function createChart(data, containerId) {
     svg.append("text")
     .attr("text-anchor", "middle")
     .attr("transform", "rotate(-90)")
-    .attr("x", -height + 120)
+    .attr("x", -height + 150)
     .attr("y", -margin.left + 12)
     .text("Number of properties")
     .style("font-size", "12px");
