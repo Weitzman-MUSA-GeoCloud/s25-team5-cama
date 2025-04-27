@@ -527,7 +527,7 @@ def model(request):
     # Remove properties with missing neighborhoods
     properties_copy = properties_copy[~properties_copy["neighborhood"].isna()]
 
-    vars = ["objectid", "sale_price", "census_tract", "central_air", "location",
+    vars = ["property_id", "sale_price", "census_tract", "central_air", "location",
             "market_value", "total_livable_area", "exterior_condition_grp",
             "interior_condition_grp", "fireplaces_grp", "garage_spaces_grp",
             "number_of_bedrooms_grp", "number_of_bathrooms_grp", "number_stories_grp",
@@ -626,7 +626,7 @@ def model(request):
 
     # 6. Create output
     output = lpd.DataFrame({
-        'property_id': properties_df.loc[all_predictions.index, 'objectid'],
+        'property_id': properties_df.loc[all_predictions.index, 'property_id'],
         'tax_year': 2025,
         'sale_price_2025': all_predictions.values
     })
