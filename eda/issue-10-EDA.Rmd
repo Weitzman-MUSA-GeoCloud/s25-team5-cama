@@ -1,0 +1,933 @@
+---
+title: "Exploratory Data Analysis"
+author: "Hon Kiu To (James)"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    number_sections: false
+    toc_float: true
+    toc_depth: 4
+    theme: flatly
+    highlight: espresso
+    code_folding: show
+---
+
+```{r setup, warning = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(lubridate)
+library(sf)
+library(nngeo)
+library(kableExtra)
+library(wkutils)
+library(corrplot)
+library(DT)
+
+knitr::opts_chunk$set(fig.width = 15, fig.height = 8)
+```
+
+Besides the Philadelphia properties data (`properties`) and Philadelphia property assessment history data (`assessments`), we also explore:
+
+- Philadelphia crime incidents in 2024 (`crimes2024`)
+- Philadelphia landmarks location (`landmarks`)
+- Philadelphia farmers markets location (`markets`)
+- Philadelphia 311 requests in 2024 (`requests_311`)
+
+```{r data loading, warning = FALSE, message = FALSE}
+properties = read.csv("opa_properties.csv")
+assessments = read.csv("opa_assessments.csv")
+
+crimes2024 = read.csv("incidents_part1_part2-4.csv")
+
+crimes2024 = crimes2024 |> 
+   filter(!is.na(crimes2024$lat)) |> 
+   select(-the_geom, -cartodb_id, -the_geom_webmercator) |> 
+   st_as_sf(coords = c("lng", "lat"), crs = 4326) |> 
+   st_transform("EPSG:6565")
+
+markets = st_read("Farmers_Markets.geojson") |> 
+   st_transform("EPSG:6565")
+
+landmarks = st_read("Landmark_Points.geojson") |> 
+   st_transform("EPSG:6565")
+
+requests_311 = read.csv("public_cases_fc.csv")
+
+neighborhoods = read_sf("./philadelphia-neighborhoods/philadelphia-neighborhoods.shp") |> 
+   st_transform("EPSG:6565")
+```
+
+# Exploring Potential Predictors for Property Prices
+
+## Subsetting
+We subset the properties data based on the following criteria:
+
+- We drop all properties that are missing sales price.
+- We drop all bundled properties identified using the procedure outlined in the following codes.
+- We restrict ourselves to properties with a sales price between \$10 and \$10,000,000, with a non-zero total livable area, and a non-zero built year.
+- We drop all properties with empty geometries.
+We start with 584,067 properties, and after the subsetting, we are left with 309,497 properties.
+
+```{r filter properties df, warning = FALSE, message = FALSE}
+properties = properties |> 
+   filter(!is.na(sale_price))
+
+# Group by sale_date and sale_price and count occurrences
+bundled_properties = properties |> 
+  group_by(sale_date, sale_price) |> 
+  mutate(count = n()) |> 
+  ungroup()
+
+# Identify properties that are likely part of a bundle
+bundled_properties = bundled_properties |> 
+  mutate(is_bundle = count > 1)
+
+# Filter out bundled properties from the original dataset
+properties = bundled_properties |> 
+  filter(!is_bundle) |> 
+  select(-count, -is_bundle)
+
+properties = properties |>
+   filter(sale_price > 10 & sale_price < 10000000 & total_livable_area > 0 & year_built > 0)
+
+properties = st_as_sf(properties, wkt = "shape", crs = 2272) |>
+   st_transform("EPSG:6565")
+
+properties = properties |> 
+   filter(!st_is_empty(properties))
+```
+
+## Outcome: Properties Sales Price
+We present the histogram of the properties sales price on our subset.
+
+```{r sales price distribution, warning = FALSE, message = FALSE}
+summary_df = data.frame(
+  Statistic = c("Minimum", "Q1", "Median", "Mean", "Q3", "Maximum"),
+  Value = as.character(summary(properties$sale_price))
+)
+
+summary_df$Value = formatC(as.numeric(summary_df$Value), format = "f", big.mark = ",", digits = 0)
+summary_df$Value = paste0("$", summary_df$Value)
+
+summary_df = as.data.frame(t(summary_df))
+
+summary_df |> 
+   kable("html",
+         col.names = NULL,
+         align = "c") |> 
+   kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed"),
+      font_size = 14,
+      full_width = F) |> 
+   column_spec(1, bold = TRUE) |> 
+   row_spec(1, bold = TRUE) |> 
+   row_spec(2, color = "blue") |> 
+   column_spec(1, color = "black")
+
+ggplot(properties, aes(x = log(sale_price))) + 
+   geom_histogram(fill = "skyblue", color = "white") + 
+   labs(x = expression(log("Market Value")), y = "Count",
+        title = "Distribution of Property Market Values (log scale)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Covariates
+
+### Internal Features
+
+#### Total Livable Area
+`total_livable_area` is highly skewed, but after a log-transformation, it is distributed much nicer.
+We also see that the sale price tends to increase as the total livable area increases.
+```{r total livable area, warning = FALSE, message = FALSE}
+summary(properties$total_livable_area)
+ggplot(properties, aes(x = log(total_livable_area))) + 
+   geom_histogram(fill = "skyblue", color = "white") + 
+   labs(x = expression(log("Total Livable Area")), y = "Count",
+        title = "Distribution of Total Livable Area (log scale)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(properties, aes(x = log(total_livable_area), y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log("Total Livable Area")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(Total Livable Area)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Exterior Condition
+For `exterior_condition`, based on the metadata on OpenDataPhilly (last updated on May 5, 2022), we group them as follows:
+
+- 0, 1, 2, 3 -> "Above average"
+- 4, 5 -> "Average"
+- 6 -> "Below average"
+- "", 7, 8, A -> "Others"
+
+```{r exterior condition, warning = FALSE, message = FALSE}
+table(properties$exterior_condition, useNA = "always")
+properties = properties |> 
+   mutate(exterior_condition_grp = case_when(
+      exterior_condition %in% c(0, 1, 2, 3) ~ "Above average",
+      exterior_condition %in% c(4, 5) ~ "Average",
+      exterior_condition == 6 ~ "Below average",
+      exterior_condition %in% c("", 7, 8, "A") ~ "Others",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+properties$exterior_condition_grp = factor(properties$exterior_condition_grp, 
+                                           levels = c("Others", "Below average",
+                                                      "Average", "Above average"))
+table(properties$exterior_condition, properties$exterior_condition_grp)
+
+(ggplot(aggregate(objectid ~ exterior_condition, data = properties, FUN = length),
+        aes(x = exterior_condition, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Exterior Condition", y = "Count", 
+        title = "Distribution of Properties Exterior Conditions (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ exterior_condition_grp, data = properties, FUN = length),
+        aes(x = exterior_condition_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Exterior Condition (Grouped)", y = "Count", 
+         title = "Distribution of Properties Exterior Conditions (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = exterior_condition_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Exterior Condition (Grouped)",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Exterior Condition Group") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Interior Condition
+For `interior_condition`, since it shares the same categories as `exterior_condition`, we adopt the same groupings as `exterior_condition`:
+
+- 0, 1, 2, 3 -> "Above average"
+- 4, 5 -> "Average"
+- 6 -> "Below average"
+- "", 7, 8, A -> "Others"
+
+```{r interior condition, warning = FALSE, message = FALSE}
+table(properties$interior_condition, useNA = "always")
+properties = properties |> 
+   mutate(interior_condition_grp = case_when(
+      interior_condition %in% c(0, 1, 2, 3) ~ "Above average",
+      interior_condition %in% c(4, 5) ~ "Average",
+      interior_condition == 6 ~ "Below average",
+      interior_condition %in% c("", 7, 8, "A") ~ "Others",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+properties$interior_condition_grp = factor(properties$interior_condition_grp, 
+                                           levels = c("Others", "Below average",
+                                                      "Average", "Above average"))
+table(properties$interior_condition, properties$interior_condition_grp)
+
+(ggplot(aggregate(objectid ~ interior_condition, data = properties, FUN = length),
+        aes(x = interior_condition, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Interior Condition", y = "Count", 
+        title = "Distribution of Properties Interior Conditions (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ interior_condition_grp, data = properties, FUN = length),
+        aes(x = interior_condition_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Interior Condition (Grouped)", y = "Count", 
+         title = "Distribution of Properties Interior Conditions (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = interior_condition_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Interior Condition (Grouped)",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Interior Condition Group") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Central Air
+For `central_air`, we classify properties as:
+
+- "Y" (There is central air)
+- "N" (There is no central air)
+- "Unknown" (There is no clear indication of the existence of central air)
+
+```{r central air, warning = FALSE, message = FALSE}
+table(properties$central_air, useNA = "always")
+properties = properties |> 
+   mutate(central_air = case_when(
+      central_air %in% c(1, "Y") ~ "Y",
+      central_air %in% c(0, "N") ~ "N",
+      central_air == "" ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$central_air = factor(properties$central_air, levels = c("Unknown", "N", "Y"))
+table(properties$central_air)
+ggplot(aggregate(objectid ~ central_air, data = properties, FUN = length),
+        aes(x = central_air, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Central Air Type", y = "Count", 
+        title = "Distribution of Properties Central Air Types") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(properties, aes(x = central_air, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Central Air Type",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Central Air Type") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Fireplaces
+For `fireplaces`, we classify properties as:
+
+- "0" (There are no fireplaces)
+- "1+" (There is at least 1 fireplace)
+- "Unknown" (There is no clear indication of the existence of fireplaces)
+
+```{r fireplaces, warning = FALSE, message = FALSE}
+table(properties$fireplaces, useNA = "always")
+properties = properties |> 
+   mutate(fireplaces_grp = case_when(
+      fireplaces == 0 ~ "0",
+      fireplaces >= 1 ~ "1+",
+      is.na(fireplaces) ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$fireplaces_grp = factor(properties$fireplaces_grp, levels = c("Unknown", "0", "1+"))
+table(properties$fireplaces, properties$fireplaces_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ fireplaces, data = properties, FUN = length),
+        aes(x = as.factor(fireplaces), y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Number of fireplaces", y = "Count", 
+        title = "Distribution of Number of Fireplaces in Properties") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ fireplaces_grp, data = properties, FUN = length),
+        aes(x = as.factor(fireplaces_grp), y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Presence of Fireplaces", y = "Count", 
+         title = "Distribution of Presence of Fireplaces in Properties") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = fireplaces_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Number of Fireplaces",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Number of Fireplaces") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Garage Spaces
+For `garage_spaces`, we classify properties as:
+
+- "0" (There are no garage spaces)
+- "1" (There is 1 garage space)
+- "2+" (There are at least 2 garage spaces)
+- "Unknown" (There is no clear indication of the existence of garage spaces)
+
+```{r garage space, warning = FALSE, message = FALSE}
+table(properties$garage_spaces, useNA = "always")
+properties = properties |> 
+   mutate(garage_spaces_grp = case_when(
+      garage_spaces == 0 ~ "0",
+      garage_spaces == 1 ~ "1",
+      garage_spaces > 1 ~ "2+",
+      is.na(garage_spaces) ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$garage_spaces_grp = factor(properties$garage_spaces_grp,
+                                      levels = c("Unknown", "0", "1", "2+"))
+table(properties$garage_spaces, properties$garage_spaces_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ garage_spaces, data = properties, FUN = length),
+        aes(x = garage_spaces, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Garage Space", y = "Count", 
+        title = "Distribution of Garage Spaces (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ garage_spaces_grp, data = properties, FUN = length),
+        aes(x = garage_spaces_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Garage Space (Grouped)", y = "Count", 
+         title = "Distribution of Garage Spaces (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = garage_spaces_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Number of Garage Spaces",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Number of Garage Spaces") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Number of Bedrooms
+We use 5 as the cutoff for the number of bedrooms (`number_of_bedrooms`) in properties:
+
+- Retain the labels "0", "1", "2", "3", "4", "5" for 0, 1, 2, 3, 4, and 5 bedrooms
+- If there are more than 5 bedrooms, we group them under the label "5+"
+- If there is no clear indication on the number of bedrooms, we group them under the label "Unknown"
+
+```{r number of bedrooms, warning = FALSE, message = FALSE}
+table(properties$number_of_bedrooms, useNA = "always")
+properties = properties |> 
+   mutate(number_of_bedrooms_grp = case_when(
+      number_of_bedrooms <= 5 ~ as.character(number_of_bedrooms),
+      number_of_bedrooms > 5 ~ "5+",
+      is.na(number_of_bedrooms) ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$number_of_bedrooms_grp = factor(properties$number_of_bedrooms_grp,
+                                      levels = c("Unknown", "0", "1", "2", "3", "4", "5", "5+"))
+table(properties$number_of_bedrooms, properties$number_of_bedrooms_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ number_of_bedrooms, data = properties, FUN = length),
+        aes(x = number_of_bedrooms, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Number of Bedrooms", y = "Count", 
+        title = "Distribution of Number of Bedrooms (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ number_of_bedrooms_grp, data = properties, FUN = length),
+        aes(x = number_of_bedrooms_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Number of Bedrooms (Grouped)", y = "Count", 
+         title = "Distribution of Number of Bedrooms (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = number_of_bedrooms_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Number of Bedrooms",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Number of Bedrooms") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Number of Bathrooms
+We use 2 as the cutoff for the number of bathrooms (`number_of_bathrooms`) in properties:
+
+- Retain the labels "0", "1", "2" for 0, 1, and 2 bathrooms
+- If there are more than 2 bathrooms, we group them under the label "2+"
+- If there is no clear indication on the number of bathrooms, we group them under the label "Unknown"
+
+```{r number of bathrooms, warning = FALSE, message = FALSE}
+table(properties$number_of_bathrooms, useNA = "always")
+properties = properties |> 
+   mutate(number_of_bathrooms_grp = case_when(
+      number_of_bathrooms <= 2 ~ as.character(number_of_bathrooms),
+      number_of_bathrooms > 2 ~ "2+",
+      is.na(number_of_bathrooms) ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$number_of_bathrooms_grp = factor(properties$number_of_bathrooms_grp,
+                                      levels = c("Unknown", "0", "1", "2", "2+"))
+table(properties$number_of_bathrooms, properties$number_of_bathrooms_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ number_of_bathrooms, data = properties, FUN = length),
+        aes(x = number_of_bathrooms, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Number of Bathrooms", y = "Count", 
+        title = "Distribution of Number of Bathrooms (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ number_of_bathrooms_grp, data = properties, FUN = length),
+        aes(x = number_of_bathrooms_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Number of Bathrooms (Grouped)", y = "Count", 
+         title = "Distribution of Number of Bathrooms (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = number_of_bathrooms_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Number of Bathrooms",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Number of Bathrooms") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Number of Stories
+We use 2 as the cutoff for the number of stories (`number_stories`) in properties:
+
+- Retain the labels "0", "1", "2" for 0, 1, and 2 stories
+- If there are more than 2 stories, we group them under the label "2+"
+- If there is no clear indication on the number of stories, we group them under the label "Unknown"
+
+```{r number of stories, warning = FALSE, message = FALSE}
+table(properties$number_stories, useNA = "always")
+properties = properties |> 
+   mutate(number_stories_grp = case_when(
+      number_stories <= 2 ~ as.character(number_stories),
+      number_stories > 2 ~ "2+",
+      is.na(number_stories) ~ "Unknown",
+      TRUE ~ NA_character_ # Catch unexpected values
+      )
+   )
+
+properties$number_stories_grp = factor(properties$number_stories_grp,
+                                      levels = c("Unknown", "1", "2", "2+"))
+table(properties$number_stories, properties$number_stories_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ number_stories, data = properties, FUN = length),
+        aes(x = number_stories, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Number of Stories", y = "Count", 
+        title = "Distribution of Number of Stories (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ number_stories_grp, data = properties, FUN = length),
+        aes(x = number_stories_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Number of Stories (Grouped)", y = "Count", 
+         title = "Distribution of Number of Stories (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = number_stories_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Number of Stories",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Number of Stories") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Type of Heater
+For `type_heater`, we classify properties as:
+
+- "A"
+- "Non-A"
+- "Unknown"
+
+```{r type of heater, warning = FALSE, message = FALSE}
+table(properties$type_heater, useNA = "always")
+properties = properties |> 
+   mutate(type_heater_grp = case_when(
+      type_heater == "A" ~ "A",
+      type_heater == "" ~ "Unknown",
+      TRUE ~ "Non-A" # Catch unexpected values
+      )
+   )
+
+properties$type_heater_grp = factor(properties$type_heater_grp,
+                                      levels = c("Unknown", "A", "Non-A"))
+table(properties$type_heater, properties$type_heater_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ type_heater, data = properties, FUN = length),
+        aes(x = type_heater, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Heater Type", y = "Count", 
+        title = "Distribution of Heater Types (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ type_heater_grp, data = properties, FUN = length),
+        aes(x = type_heater_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Heater Type (Grouped)", y = "Count", 
+         title = "Distribution of Heater Types (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = type_heater_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Heater Type",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Heater Type") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Properties Age Group
+We first calculate the age of each property by subtracting the `year_built` from 2025 (current year).
+Then, we group the ages of the properties using the following criteria:
+
+- "<= 25" (Properties at most 25 years old)
+- "26-75" (Properties with ages between 26 and 75 years old)
+- "76-100" (Properties with ages between 76 and 100 years old)
+- "101-125" (Properties with ages between 101 and 125 years old)
+- "126+" (Properties with ages beyond 125 years old)
+**<u>Remark:</u>** There are 3 properties with `year_built` = 2026.
+
+```{r properties age group, warning = FALSE, message = FALSE}
+properties = properties |> 
+   mutate(age = year(Sys.Date()) - year_built)
+
+table(properties$age, useNA = "always")
+properties = properties |> 
+   mutate(age_grp = case_when(
+      age <= 25 ~ "<= 25",
+      age > 25 & age <= 75 ~ "26-75",
+      age > 75 & age <= 100 ~ "76-100",
+      age > 100 & age <= 125 ~ "101-125",
+      TRUE ~ "126+" # Catch unexpected values
+      )
+   )
+
+properties$age_grp = factor(properties$age_grp,
+                                      levels = c("<= 25", "26-75", "76-100", "101-125", "126+"))
+table(properties$age, properties$age_grp, useNA = "always")
+
+(ggplot(properties, aes(x = age)) + 
+   geom_histogram(fill = "skyblue", color = "white") + 
+   labs(x = "Property Age", y = "Count", 
+        title = "Distribution of Property Age (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ age_grp, data = properties, FUN = length),
+        aes(x = age_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Property Age (Grouped)", y = "Count", 
+         title = "Distribution of Property Age (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = age_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Property Age",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Property Age") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Building Code Groups
+We classify building codes based on the descriptions of building codes (`building_code_description_new`):
+
+- "Row" (If `building_code_description_new` begins with "ROW")
+- "Twin" (If `building_code_description_new` begins with "TWIN)
+- "Unknown" (If there is no clear building code description)
+- "Other"
+
+```{r building code group, warning = FALSE, message = FALSE}
+table(properties$building_code_description_new, useNA = "always")
+properties = properties |> 
+   mutate(building_code_grp = case_when(
+      substr(building_code_description_new, 1, 3) == "ROW" ~ "Row",
+      substr(building_code_description_new, 1, 4) == "TWIN" ~ "Twin",
+      building_code_description_new == "" ~ "Unknown",
+      TRUE ~ "Other" # Catch unexpected values
+      )
+   )
+
+properties$building_code_grp = factor(properties$building_code_grp,
+                                      levels = c("Unknown", "Row", "Twin", "Other"))
+table(properties$building_code_description_new, properties$building_code_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ building_code_description_new, data = properties, FUN = length),
+        aes(x = building_code_description_new, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   scale_x_discrete(breaks = unique(aggregate(objectid ~ building_code_description_new, data = properties, FUN = length)$building_code_description_new)[seq(1, 114, by = 15)]) + 
+   labs(x = "Building Type", y = "Count", 
+        title = "Distribution of Building Types (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5),
+         axis.text.x = element_text(size = 4, angle = 45, hjust = 1))) + 
+(ggplot(aggregate(objectid ~ building_code_grp, data = properties, FUN = length),
+        aes(x = building_code_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Building Type (Grouped)", y = "Count", 
+         title = "Distribution of Building Types (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = building_code_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Building Type",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Building Type") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Quality Grade
+We simplify the quality grades by collapsing quality grades (`quality_grade`) with the same letter into one single category, creating an "Unknown" group for properties without clear indication of quality grades, and combining the remaining into the "Other" group.
+
+```{r quality grade, warning = FALSE, message = FALSE}
+table(properties$quality_grade, useNA = "always")
+properties = properties |> 
+   mutate(quality_grade_grp = case_when(
+      quality_grade %in% c("A ", "A-", "A+") ~ "A",
+      quality_grade %in% c("B ", "B-", "B+") ~ "B",
+      quality_grade %in% c("C ", "C-", "C+") ~ "C",
+      quality_grade %in% c("D ", "D-", "D+") ~ "D",
+      quality_grade %in% c("E ", "E-", "E+") ~ "E",
+      quality_grade %in% c("S ", "S-", "S+") ~ "S",
+      quality_grade %in% c("X ", "X-") ~ "X",
+      quality_grade == "" ~ "Unknown",
+      TRUE ~ "Other" # Catch unexpected values
+      )
+   )
+
+properties$quality_grade_grp = factor(properties$quality_grade_grp,
+                                      levels = c("Unknown", "A", "B", "C", "D", "E", "S", "X", "Other"))
+table(properties$quality_grade, properties$quality_grade_grp, useNA = "always")
+
+(ggplot(aggregate(objectid ~ quality_grade, data = properties, FUN = length),
+        aes(x = quality_grade, y = objectid)) + 
+   geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+   labs(x = "Quality Grade", y = "Count", 
+        title = "Distribution of Quality Grades (Before Grouping)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))) + 
+(ggplot(aggregate(objectid ~ quality_grade_grp, data = properties, FUN = length),
+        aes(x = quality_grade_grp, y = objectid)) + 
+    geom_bar(stat = "identity", fill = "skyblue", color = "white") + 
+    labs(x = "Quality Grade (Grouped)", y = "Count", 
+         title = "Distribution of Quality Grades (After Grouping)") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust = 0.5)))
+
+ggplot(properties, aes(x = quality_grade_grp, y = log(sale_price))) + 
+   geom_boxplot(fill = "skyblue", color = "gray40", outlier.alpha = 0.3) + 
+   labs(x = "Quality Grade",
+        y = expression(log("Sale Price")),
+        title = "Distribution of log(Sale Price) by Quality Grade") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+#### Most Recent Assessment Value
+To provide more nuance, we include the most recent assessment value of each of the properties as a covariate.
+As the following analysis reveals, the most recent assessment value is already contained in the `properties` data frame under the column `market_value`.
+
+```{r previous assessment value, warning = FALSE, message = FALSE}
+# most_recent_assessments = assessments |> 
+#    filter(parcel_number %in% properties$parcel_number) |> 
+#    group_by(parcel_number) |>
+#    filter(year == max(year, na.rm = TRUE)) |>
+#    select(parcel_number, market_value)
+# 
+# table(properties[order(properties$parcel_number),]$market_value==most_recent_assessments[order(most_recent_assessments$parcel_number),]$market_value)
+
+ggplot(properties, aes(x = log(market_value))) + 
+   geom_histogram(fill = "skyblue", color = "white") + 
+   labs(x = expression(log("Most Recent Assessment Value")), y = "Count",
+        title = "Distribution of Property's Most Recent Assessment Values (log scale)") + 
+   theme_minimal() + 
+   theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(properties, aes(x = log(1 + market_value), y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Most Recent Assessment Value")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Most Recent Assessment Value)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+```
+
+#### Sale Date
+Properties that were sold more recently are likely to have a stronger signal for what the current value of other properties is.
+So, the date of sale (`sale_date`) will also be included as a covariate.
+Although, instead of including `sale_date` directly as one covariate, we separate the year (`sale_year`) and month (`sale_month`) of sale into two variables and include them both.
+
+```{r sales date, warning = FALSE, message = FALSE}
+properties$sale_date = ymd_hms(properties$sale_date)
+properties = properties |> 
+   mutate(sale_year = year(sale_date),
+          sale_month = month(sale_date))
+```
+
+### External Features
+Besides properties' internal features, we also consider several external features, including:
+
+- Proximity to crimes (Homicides and Thefts)
+- Proximity to trash collection requests
+- Proximity to farmers markets
+- Proximity to landmarks
+
+```{r crime, warning = FALSE, message = FALSE}
+homicide = crimes2024 |> 
+   filter(text_general_code %in% c("Homicide - Criminal", "Homicide - Justifiable"))
+
+theft = crimes2024 |> 
+   filter(text_general_code %in% c("Thefts", "Theft from Vehicle"))
+```
+
+```{r other amenities, warning = FALSE, message = FALSE}
+trash = requests_311 |> 
+   filter(!is.na(requests_311$lat)) |> 
+   filter(service_name %in% c("Rubbish/Recyclable Material Collection", "Sanitation Violation",
+                              "Illegal Dumping", "Sanitation / Dumpster Violation",
+                              "Dumpster Violation")) |> 
+   st_as_sf(coords = c("lon", "lat"), crs = 4326) |> 
+   st_transform("EPSG:6565")
+```
+We now proceed to calculate the average distances of each house to nearby (dis)amenities based on a nearest neighbor criterion.
+**<u>Remark:</u>** Log transformation was applied to all distances to improve the distribution of these factors relative to sale price.
+```{r nn, warning = FALSE, message = FALSE}
+properties = properties |> 
+   mutate(homicides = log(1 + sapply(st_nn(properties, homicide, k = 3, returnDist = TRUE)$dist, mean)),
+          trash_requests = log(1 + sapply(st_nn(properties, trash, k = 5, returnDist = TRUE)$dist, mean)),
+          markets = log(1 + sapply(st_nn(properties, markets, k = 1, returnDist = TRUE)$dist, mean)),
+          landmarks = log(1 + sapply(st_nn(properties, landmarks, k = 50, returnDist = TRUE)$dist, mean)),
+          thefts = log(1 + sapply(st_nn(properties, theft, k = 7, returnDist = TRUE)$dist, mean)))
+
+ggplot(properties, aes(x = homicides, y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Average Distance to 3 Nearest Homicides")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Average Distance to 3 Nearest Homicides)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggplot(properties, aes(x = trash_requests, y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Average Distance to 5 Nearest Trash Requests")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Average Distance to 5 Nearest Trash Requests)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggplot(properties, aes(x = markets, y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Average Distance to the Nearest Farmers Market")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Average Distance to the Nearest Farmers Market)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggplot(properties, aes(x = landmarks, y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Average Distance to 50 Nearest Landmarks")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Average Distance to 50 Nearest Landmarks)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+
+ggplot(properties, aes(x = thefts, y = log(sale_price))) + 
+   geom_point(alpha = 0.5, color = "skyblue") + 
+   labs(x = expression(log(1 + "Average Distance to 7 Nearest Thefts")),
+        y = expression(log("Sale Price")),
+        title = "Scatter Plot of log(Sale Price) vs. log(1 + Average Distance to 7 Nearest Thefts)") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10, hjust = 0.5))
+```
+
+### Neighborhoods
+We will also include `neighborhood` as a covariate to capture differential property prices in different neighborhoods.
+
+```{r neighborhoods, warning = FALSE, message = FALSE}
+properties = st_join(
+  properties, 
+  neighborhoods[, c("MAPNAME")], # Only join the neighborhood name column
+  left = TRUE, 
+  join = st_within # or st_intersects if you want to include boundary cases
+)
+
+# Rename the column for clarity
+properties = properties |> 
+  rename(neighborhood = MAPNAME)
+
+# Drop the properties with missing neighborhood - This results in 1 property removed
+properties = properties |> 
+   filter(!is.na(neighborhood))
+```
+
+```{r map, warning = FALSE, message = FALSE}
+custom_colors = c(
+  "<100k" = "#ffffcc",      
+  "100-200k" = "#c2e699",   
+  "200-300k" = "#78c679",   
+  "300-400k" = "#31a354",   
+  ">400k" = "#006837"       
+)
+
+ggplot() + 
+   geom_sf(data = neighborhoods, fill = "gray90", color = "white") + 
+   geom_point(data = properties,
+              aes(x = data.frame(st_coordinates(shape))$X,
+                  y = data.frame(st_coordinates(shape))$Y,
+                  color = cut(sale_price,
+                              breaks = c(-Inf, 100000, 200000, 300000, 400000, Inf),
+                              labels = c("<100k", "100-200k", "200-300k", "300-400k", ">400k"),
+                              right = FALSE)),
+              size = 1.5, alpha = 0.7) + 
+   scale_color_manual(name = "Price Range", values = custom_colors) + 
+   labs(title = "Philadelphia Properties Sales Price by Price Range") + 
+   theme_void() + 
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## Correlation Matrix for Numerical Variables
+We also create the correlation matrix for the numerical covariates in `properties`.
+
+```{r corr plot, warning = FALSE, message = FALSE}
+corr = properties |> 
+   st_drop_geometry() |> 
+   select(sale_price, total_livable_area, homicides, thefts,
+          trash_requests, markets, landmarks, market_value) |> 
+   mutate(sale_price = log(sale_price),
+          total_livable_area = log(total_livable_area),
+          market_value = log(1 + market_value)) |> 
+   cor()
+
+corrplot(corr, method = "color", addCoef.col = "black", number.cex=0.7,
+         tl.col = 'black', tl.srt = 45, tl.cex = 0.7, type = "lower",
+         mar = c(1, 0, 2, 0))
+title(main = "Correlation Matrix for Numerical Covariates")
+```
+
+# Summary
+The final data frame used to train the prediction model (random forest) is shown below.
+
+```{r final df, warning = FALSE, message = FALSE}
+vars = c("objectid", "sale_price", "census_tract", "central_air", "location",
+         "market_value", "total_livable_area", "exterior_condition_grp",
+         "interior_condition_grp", "fireplaces_grp", "garage_spaces_grp",
+         "number_of_bedrooms_grp", "number_of_bathrooms_grp", "number_stories_grp",
+         "type_heater_grp", "age_grp", "building_code_grp", "quality_grade_grp",
+         "sale_year", "sale_month", "homicides", "trash_requests", "markets",
+         "landmarks", "thefts", "neighborhood")
+
+properties |> 
+   select(vars) |> 
+   datatable(filter = "top",
+             extensions = "Buttons",
+             options = list(scrollX = TRUE,
+                            pageLength = 10,
+                            dom = "Bfrtip",
+                            buttons = list("copy", "print",
+                                           list(extend = "collection",
+                                                buttons = c("csv", "excel", "pdf"),
+                                                text = "Download")
+                                           )
+                            ),
+             rownames = FALSE,
+             caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: center;', 'Table 1: The model will be predicting the log-transformed "sale_price". The covariates "total_livable_area" and "market_value" will be log-transformed.'))
+```
+
+
+
