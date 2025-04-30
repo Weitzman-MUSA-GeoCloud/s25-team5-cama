@@ -182,3 +182,52 @@ In each project, a service account named `data-pipeline-user` was created to pro
 - `Cloud Functions Invoker`
 - `Cloud Run Invoker`
 - `Workflows Invoker`
+
+## Architecture
+
+![](img/workflow.png)
+
+### Extract, prepare and load functions
+
+4 functions extract data from the source URL, prepare them as `jsonl` files and load them as native BigQuery tables. The data are used in the model to predict 2025 property values, and in the front end to visualise historical and 2025 property values. The neighborhood geojson is also uploaded to the public bucket for front-end access.
+
+- OPA properties
+- OPA assessments
+- PWD parcels
+- Philadelphia neighborhoods
+
+### Extract functions
+
+4 extract functions provide additional data for the model. The prepare and load functions are skipped, and the data (in `csv` or `geojson` format) feed directly into the model function from the raw bucket.
+
+- Landmarks
+- Farmer markets
+- Crimes
+- 311 requests (trash)
+
+### Model function
+
+The model function runs a random forest model to predict 2025 property values using internal housing characteristics and spatial data. The model function outputs predicted values as a `csv` and uploads it to the temporary bucket. 
+
+### Model to table function
+
+This function converts the `csv` with predicted values into an external table, then a native table in BigQuery.
+
+### Create table functions
+
+This function runs 5 SQL files to create 5 native tables in BigQuery: 1 with all historical property values, and 4 for the assessment bins used in the front end, with the predicted and historical data at the philadelphia scale and neighbourhood scale. 
+
+### Vector tile functions
+
+A first function creates the `property_tiles_info.geojson` using the BigQuery tables, while a second function uses the geojson to update vector tiles. The vector tiles are used to create the map on the front end.
+
+### Create JSON functions
+
+A first function creates 2 `json` files for the philadelphia scale data, while a second function creates 2 `json` files for the neighbourhood scale data. The `json` files are used to create charts on the front end. 
+
+### API
+
+2 APIs allow the front end to directly query the BigQuery table with historical property values. The first API queries 6 properties based on the address typed in for the suggestion lists in the widget, while the second API queries the property data based on the exact address typed in for the popup window in the reviewer's page front, which includes predicted values for 2025 and the changes between 2024 and 2025. 
+
+## Deployment
+Cloud functions and API are written as Python scripts. All codes used for deploying cloud functions, API, the workflow `yml` file, and the public bucket CORS configuration are documented in `DEPLOY.md`. 
