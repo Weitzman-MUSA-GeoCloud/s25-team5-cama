@@ -235,15 +235,19 @@ Cloud functions and API are written as Python scripts. All codes used for deploy
 The Dockerfile was deployed using the code adapted from Sean Koh below:
 
 1. Creating repository
+
 gcloud artifacts repositories create generate-property-map-tiles --repository-format=docker ` --location=us-central1
 
 2. Execute whenever docker build is changed
+
 gcloud builds submit `
   --region us-central1 `
   --tag us-central1-docker.pkg.dev/musa5090s25-team5/generate-property-map-tiles/tiles-image:1
 
 3. Change to update/create depending on if job already exists
+
 gcloud run jobs create generate-property-map-tiles ` --image us-central1-docker.pkg.dev/musa5090s25-team5/generate-property-map-tiles/tiles-image:1 ` --service-account data-pipeline-user@musa5090s25-team5.iam.gserviceaccount.com ` --cpu 4 ` --memory 4Gi ` --region us-central1 --task-timeout 30m
 
 4. Run the gcloud function
+
 gcloud run jobs execute generate-property-map-tiles --region=us-central1
