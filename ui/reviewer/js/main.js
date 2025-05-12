@@ -2,7 +2,7 @@ import { searchForAddress } from './search_bar.js';
 import { highlightNeighborhood,findNeighborhoodForParcel, flyToNeighborhood } from './neighborhood.js';
 import { createChart } from './charts.js';
 import { updateLayerProperty } from './basemap.js';
-import { showParcelPopup } from './popup.js';
+import { showParcelPopup, clearPopup } from './popup.js';
 
 let updatingFromAddressClick = false;
 
@@ -389,6 +389,8 @@ document.getElementById('reload-button').addEventListener('click', () => {
       }
     });
   }
+
+  clearPopup();
 
   map.flyTo({
     center: [-75.1652, 39.9526], // your original center
