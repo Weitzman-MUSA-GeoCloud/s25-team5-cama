@@ -43,4 +43,11 @@ function showParcelPopup(map, feature, apiData) {
         .addTo(map);
 }
 
-export { showParcelPopup };
+function clearPopup() {
+    if (activePopup) {
+        activePopup.remove();
+        activePopup = null;
+    }
+}
+
+export { showParcelPopup, clearPopup };
